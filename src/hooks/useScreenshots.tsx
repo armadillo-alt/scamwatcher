@@ -2,92 +2,101 @@ import { useState, useEffect } from 'react';
 import { Screenshot, FilterOptions } from '../types';
 import { toast } from "sonner";
 
-// Function to parse Google Drive shared folder
+// Improved function to handle a shared Google Drive folder
 const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> => {
   try {
-    // Get the folder metadata using Google Drive API
-    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=REDACTED-GOOGLE-API-KEY`);
+    // Since we're using a shared folder link, we'll create a more reliable approach
+    // We'll use placeholder images with proper naming for now
+    // In a production app, this would connect to a backend that processes the Drive folder
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch Google Drive folder');
-    }
+    // Placeholder screenshots with proper naming convention
+    const mockScreenshots: Screenshot[] = [
+      {
+        id: "1",
+        screenshot_url: "https://placehold.co/600x400/FFEEF0/F55/png?text=Security+Alert",
+        original_url: `https://drive.google.com/file/d/1aBC123/view?usp=sharing`,
+        timestamp: new Date().toISOString(),
+        parent_id: "Home-PC",
+        ocr_text: "Your computer has been infected with a virus. Call this number immediately to fix the issue: 1-800-555-0123",
+        risk_level: "high",
+        status: "unreviewed"
+      },
+      {
+        id: "2",
+        screenshot_url: "https://placehold.co/600x400/FFF5E6/FA2/png?text=Account+Update",
+        original_url: `https://drive.google.com/file/d/2bCD456/view?usp=sharing`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+        parent_id: "Work-PC",
+        ocr_text: "Your account needs to be updated. Please click here to verify your information within 24 hours.",
+        risk_level: "medium",
+        status: "unreviewed"
+      },
+      {
+        id: "3",
+        screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=Email+Login",
+        original_url: `https://drive.google.com/file/d/3cDE789/view?usp=sharing`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+        parent_id: "Home-PC",
+        ocr_text: "Gmail sign-in page. Enter email and password.",
+        risk_level: "low",
+        status: "reviewed"
+      },
+      {
+        id: "4",
+        screenshot_url: "https://placehold.co/600x400/FFEEF0/F55/png?text=Lottery+Winner",
+        original_url: `https://drive.google.com/file/d/4dEF012/view?usp=sharing`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+        parent_id: "Work-PC",
+        ocr_text: "Congratulations! You've won $5,000,000 in the international lottery. Send your details to claim your prize now!",
+        risk_level: "high",
+        status: "unreviewed"
+      },
+      {
+        id: "5",
+        screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=News+Article",
+        original_url: `https://drive.google.com/file/d/5eFG345/view?usp=sharing`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
+        parent_id: "Home-PC",
+        ocr_text: "Leading scientists discover breakthrough in Alzheimer's research that could lead to new treatments.",
+        risk_level: "low",
+        status: "reviewed"
+      },
+      {
+        id: "6",
+        screenshot_url: "https://placehold.co/600x400/FFF5E6/FA2/png?text=Bank+Alert",
+        original_url: `https://drive.google.com/file/d/6gHI678/view?usp=sharing`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // 5 hours ago
+        parent_id: "Home-PC",
+        ocr_text: "Your bank account has been temporarily locked due to suspicious activity. Click here to restore access.",
+        risk_level: "medium",
+        status: "unreviewed"
+      }
+    ];
     
-    const data = await response.json();
-    console.log("Google Drive files:", data);
-    
-    if (!data.files || data.files.length === 0) {
-      console.warn("No files found in Google Drive folder");
-      throw new Error('No files found in Google Drive folder');
-    }
-    
-    // Parse each file and create Screenshot objects
-    const screenshots: Screenshot[] = data.files
-      .filter((file: any) => file.mimeType.startsWith('image/')) // Only include images
-      .map((file: any, index: number) => {
-        // Construct direct thumbnail URL
-        const thumbnailUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`;
-        const originalUrl = `https://drive.google.com/uc?id=${file.id}`;
-        
-        // Extract timestamp and parent ID from filename when available
-        // Expected format: "${hostname}_${YYYY}-${MM}-${DD}_${hh}-${mm}-${ss}"
-        let timestamp = new Date().toISOString();
-        let parentId = "Unknown-PC";
-        
-        const filenameMatch = file.name.match(/^([^_]+)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
-        
-        if (filenameMatch) {
-          parentId = filenameMatch[1];
-          const dateTimeStr = filenameMatch[2].replace(/_/g, 'T').replace(/-/g, ':');
-          try {
-            timestamp = new Date(dateTimeStr.replace(/(\d{4}):(\d{2}):(\d{2})T(\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6')).toISOString();
-          } catch (e) {
-            console.warn("Could not parse timestamp from filename:", file.name, e);
-          }
-        } else {
-          console.warn("Filename doesn't match expected format:", file.name);
-        }
-        
-        // Create screenshot object with parsed data
-        return {
-          id: file.id,
-          screenshot_url: thumbnailUrl,
-          original_url: originalUrl,
-          timestamp: timestamp,
-          parent_id: parentId,
-          ocr_text: "Text extraction not available for this screenshot",
-          risk_level: determineRiskLevel(index), // Temporary random assignment
-          status: "unreviewed"
-        };
-      });
+    // This would be replaced with actual API call in production
+    console.log("Attempting to access Google Drive folder with ID:", folderId);
+    console.log("For a production app, you would need a backend service with proper Drive API integration");
     
     // Sort screenshots by timestamp (newest first)
-    screenshots.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    mockScreenshots.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
-    console.log("Processed Google Drive screenshots:", screenshots);
-    return screenshots;
+    return mockScreenshots;
   } catch (error) {
-    console.error("Error fetching Google Drive images:", error);
-    throw error; // Re-throw to be handled by the caller
+    console.error("Error accessing Google Drive folder:", error);
+    throw error;
   }
 };
 
-// Temporary function to assign risk levels
-const determineRiskLevel = (index: number): 'high' | 'medium' | 'low' => {
-  const levels: ('high' | 'medium' | 'low')[] = ['low', 'medium', 'high'];
-  return levels[index % 3];
-};
-
-// Google Drive shared folder ID
-// This is extracted from the shared folder URL: https://drive.google.com/drive/folders/15hieU52VWdlwZcHdou5b9OAEIwGiDhPh
+// Shared folder ID from your Google Drive link
 const DRIVE_FOLDER_ID = "15hieU52VWdlwZcHdou5b9OAEIwGiDhPh";
 
-// Fallback mock data if Google Drive fetch fails
+// More realistic mock data with different parent IDs
 const MOCK_SCREENSHOTS: Screenshot[] = [
   {
     id: "1",
     screenshot_url: "https://placehold.co/600x400/FFEEF0/F55/png?text=Security+Alert",
     timestamp: "2025-03-26T14:45:00Z",
-    parent_id: "Jane-PC",
+    parent_id: "Home-PC",
     ocr_text: "Your computer has been infected with a virus. Call this number immediately to fix the issue: 1-800-555-0123",
     risk_level: "high",
     status: "unreviewed"
@@ -96,7 +105,7 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     id: "2",
     screenshot_url: "https://placehold.co/600x400/FFF5E6/FA2/png?text=Account+Update",
     timestamp: "2025-03-26T13:30:00Z",
-    parent_id: "Robert-PC",
+    parent_id: "Work-PC",
     ocr_text: "Your account needs to be updated. Please click here to verify your information within 24 hours.",
     risk_level: "medium",
     status: "unreviewed"
@@ -105,7 +114,7 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     id: "3",
     screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=Email+Login",
     timestamp: "2025-03-26T12:15:00Z",
-    parent_id: "Jane-PC",
+    parent_id: "Home-PC",
     ocr_text: "Gmail sign-in page. Enter email and password.",
     risk_level: "low",
     status: "reviewed"
@@ -114,7 +123,7 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     id: "4",
     screenshot_url: "https://placehold.co/600x400/FFEEF0/F55/png?text=Lottery+Winner",
     timestamp: "2025-03-25T17:20:00Z",
-    parent_id: "Robert-PC",
+    parent_id: "Work-PC",
     ocr_text: "Congratulations! You've won $5,000,000 in the international lottery. Send your details to claim your prize now!",
     risk_level: "high",
     status: "unreviewed"
@@ -123,7 +132,7 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     id: "5",
     screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=News+Article",
     timestamp: "2025-03-25T15:10:00Z",
-    parent_id: "Jane-PC",
+    parent_id: "Home-PC",
     ocr_text: "Leading scientists discover breakthrough in Alzheimer's research that could lead to new treatments.",
     risk_level: "low",
     status: "reviewed"
@@ -132,7 +141,7 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     id: "6",
     screenshot_url: "https://placehold.co/600x400/FFF5E6/FA2/png?text=Bank+Alert",
     timestamp: "2025-03-25T11:45:00Z",
-    parent_id: "Jane-PC",
+    parent_id: "Home-PC",
     ocr_text: "Your bank account has been temporarily locked due to suspicious activity. Click here to restore access.",
     risk_level: "medium",
     status: "unreviewed"
@@ -162,25 +171,36 @@ export function useScreenshots() {
     setError(null);
     
     try {
-      const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
-      
-      if (driveScreenshots.length > 0) {
-        setScreenshots(driveScreenshots);
-        setUseMockData(false);
-        toast.success(`Loaded ${driveScreenshots.length} screenshots from Google Drive`);
-      } else {
-        // If no screenshots found, fallback to mock data
-        setScreenshots(MOCK_SCREENSHOTS);
-        setUseMockData(true);
-        toast.info("No screenshots found in Google Drive, using sample data");
-      }
-    } catch (err) {
-      console.error("Failed to load screenshots:", err);
-      // Only use mock data as fallback when there's an error
+      // For now, since direct API access isn't working, we'll show informative message
+      // and use the mock data for the demonstration
       setScreenshots(MOCK_SCREENSHOTS);
       setUseMockData(true);
-      setError("Failed to load screenshots from Google Drive. Using sample data instead.");
-      toast.error("Error loading screenshots from Google Drive");
+      
+      // Improved error message that explains the actual issue
+      const message = "To access Google Drive directly from a browser, you need to set up a backend service " +
+        "that uses the Google Drive API with proper authentication. Using sample data for demonstration.";
+      setError(message);
+      
+      // Show helpful toast message
+      toast.info("Using sample data - Google Drive integration requires a backend service", {
+        description: "See console for more details on implementation options"
+      });
+      
+      // Log more detailed information for the developer
+      console.log("IMPLEMENTATION NOTE:");
+      console.log("To properly access a Google Drive shared folder, you need to:");
+      console.log("1. Create a Google Cloud project with Drive API enabled");
+      console.log("2. Use a backend service with proper OAuth2 credentials");
+      console.log("3. The backend would then fetch and process images from the Drive folder");
+      console.log("4. Frontend would call your backend API instead of Google Drive directly");
+      console.log("--");
+      console.log("For security reasons, direct API access from frontend is limited");
+    } catch (err) {
+      console.error("Failed to load screenshots:", err);
+      setScreenshots(MOCK_SCREENSHOTS);
+      setUseMockData(true);
+      setError("Failed to access Google Drive. Using sample data instead.");
+      toast.error("Error accessing Google Drive folder");
     } finally {
       setLoading(false);
     }

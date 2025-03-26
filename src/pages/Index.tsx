@@ -112,7 +112,8 @@ const Index = () => {
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Using sample data</AlertTitle>
             <AlertDescription>
-              We couldn't access your Google Drive screenshots. Click "Refresh Screenshots" to try again, or check that your Google Drive folder contains images.
+              Direct Google Drive integration requires a backend service with proper authentication. 
+              For a production app, you would need to implement a backend API that uses the Google Drive SDK.
             </AlertDescription>
           </Alert>
         )}

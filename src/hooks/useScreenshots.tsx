@@ -3,7 +3,91 @@ import { useState, useEffect } from 'react';
 import { Screenshot, FilterOptions } from '../types';
 import { toast } from "sonner";
 
-// Mock data for Screenshots
+// Function to parse Google Drive shared folder
+const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> => {
+  try {
+    // Get the folder metadata using Google Drive API
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=REDACTED-GOOGLE-API-KEY`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch Google Drive folder');
+    }
+    
+    const data = await response.json();
+    console.log("Google Drive files:", data);
+    
+    // Parse each file and create Screenshot objects
+    const screenshots: Screenshot[] = data.files
+      .filter((file: any) => file.mimeType.startsWith('image/')) // Only include images
+      .map((file: any, index: number) => {
+        // Construct direct thumbnail URL
+        const thumbnailUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`;
+        const originalUrl = `https://drive.google.com/uc?id=${file.id}`;
+        
+        // Extract timestamp and parent ID from filename when available
+        // Expected format: "TIMESTAMP_PARENT-ID"
+        const parts = file.name.split('_');
+        let timestamp = new Date().toISOString();
+        let parentId = "Unknown-PC";
+        
+        // Try to parse filename for metadata
+        if (parts.length >= 1) {
+          // If only timestamp is available in filename
+          const possibleTimestamp = parts[0].replace(/\D/g, '');
+          if (possibleTimestamp.length > 0) {
+            // Try to convert to a date (this is a simplistic approach)
+            const year = possibleTimestamp.slice(0, 4);
+            const month = possibleTimestamp.slice(4, 6);
+            const day = possibleTimestamp.slice(6, 8);
+            const hour = possibleTimestamp.slice(8, 10) || "00";
+            const minute = possibleTimestamp.slice(10, 12) || "00";
+            
+            if (year && month && day) {
+              timestamp = new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`).toISOString();
+            }
+          }
+          
+          // If parent ID is available as the second part
+          if (parts.length >= 2) {
+            parentId = parts[1].replace(/\.[^/.]+$/, ""); // Remove file extension if present
+          }
+        }
+        
+        // Create screenshot object with parsed data
+        return {
+          id: file.id,
+          screenshot_url: thumbnailUrl,
+          original_url: originalUrl,
+          timestamp: timestamp,
+          parent_id: parentId,
+          ocr_text: "Text extraction not yet available",
+          risk_level: determineRiskLevel(index), // Temporary random assignment
+          status: "unreviewed"
+        };
+      });
+    
+    // Sort screenshots by timestamp (newest first)
+    screenshots.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    return screenshots;
+  } catch (error) {
+    console.error("Error fetching Google Drive images:", error);
+    toast.error("Failed to load screenshots from Google Drive");
+    return [];
+  }
+};
+
+// Temporary function to assign risk levels
+const determineRiskLevel = (index: number): 'high' | 'medium' | 'low' => {
+  const levels: ('high' | 'medium' | 'low')[] = ['low', 'medium', 'high'];
+  return levels[index % 3];
+};
+
+// Google Drive shared folder ID
+// This is extracted from the shared folder URL: https://drive.google.com/drive/folders/15hieU52VWdlwZcHdou5b9OAEIwGiDhPh
+const DRIVE_FOLDER_ID = "15hieU52VWdlwZcHdou5b9OAEIwGiDhPh";
+
+// Fallback mock data if Google Drive fetch fails
 const MOCK_SCREENSHOTS: Screenshot[] = [
   {
     id: "1",
@@ -62,20 +146,56 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
 ];
 
 export function useScreenshots() {
-  const [screenshots, setScreenshots] = useState<Screenshot[]>(MOCK_SCREENSHOTS);
-  const [filteredScreenshots, setFilteredScreenshots] = useState<Screenshot[]>(screenshots);
+  const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
+  const [filteredScreenshots, setFilteredScreenshots] = useState<Screenshot[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({
     risk_level: 'all',
     status: 'all',
     sort: 'newest'
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
+
+  // Fetch screenshots from Google Drive on component mount
+  useEffect(() => {
+    const loadScreenshots = async () => {
+      setLoading(true);
+      try {
+        const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
+        
+        if (driveScreenshots.length > 0) {
+          setScreenshots(driveScreenshots);
+          toast.success(`Loaded ${driveScreenshots.length} screenshots from Google Drive`);
+        } else {
+          // Fallback to mock data if no screenshots found
+          setScreenshots(MOCK_SCREENSHOTS);
+          toast.info("No screenshots found in Google Drive, using sample data");
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error("Failed to load screenshots:", err);
+        setScreenshots(MOCK_SCREENSHOTS);
+        setError("Failed to load screenshots from Google Drive");
+        toast.error("Error loading screenshots, using sample data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadScreenshots();
+  }, []);
 
   // Calculate metrics
   const metrics = {
     total: screenshots.length,
-    thisWeek: screenshots.length,
+    thisWeek: screenshots.filter(s => {
+      const screenshotDate = new Date(s.timestamp);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      return screenshotDate >= oneWeekAgo;
+    }).length,
     highRisk: screenshots.filter(s => s.risk_level === 'high').length,
     markedSafe: screenshots.filter(s => s.status === 'reviewed').length,
     unreviewedCount: screenshots.filter(s => s.status === 'unreviewed').length,
@@ -88,6 +208,7 @@ export function useScreenshots() {
       : null
   };
 
+  // Apply filters whenever filters or screenshots change
   useEffect(() => {
     applyFilters();
   }, [filters, screenshots]);
@@ -115,6 +236,26 @@ export function useScreenshots() {
     });
     
     setFilteredScreenshots(filtered);
+  };
+  
+  // Function to manually refresh the screenshots
+  const refreshScreenshots = async () => {
+    setLoading(true);
+    try {
+      const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
+      
+      if (driveScreenshots.length > 0) {
+        setScreenshots(driveScreenshots);
+        toast.success(`Refreshed ${driveScreenshots.length} screenshots from Google Drive`);
+      } else {
+        toast.info("No screenshots found in Google Drive");
+      }
+    } catch (err) {
+      console.error("Failed to refresh screenshots:", err);
+      toast.error("Error refreshing screenshots");
+    } finally {
+      setLoading(false);
+    }
   };
   
   const updateScreenshot = (id: string, updates: Partial<Screenshot>) => {
@@ -163,12 +304,14 @@ export function useScreenshots() {
     filters,
     setFilters,
     loading,
+    error,
     selectedScreenshot,
     setSelectedScreenshot,
     markAsSafe,
     markAsScam,
     addNotes,
     sendInstruction,
-    updateScreenshot
+    updateScreenshot,
+    refreshScreenshots
   };
 }

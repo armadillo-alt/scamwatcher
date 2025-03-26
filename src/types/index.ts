@@ -6,6 +6,7 @@ export type ScreenshotStatus = 'reviewed' | 'unreviewed';
 export interface Screenshot {
   id: string;
   screenshot_url: string;
+  original_url?: string;
   timestamp: string;
   parent_id: string;
   ocr_text?: string;

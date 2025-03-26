@@ -1,11 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   AlertTriangle, 
   Calendar, 
   Check, 
   Clock, 
   Computer, 
+  Download,
+  ExternalLink,
   MessageSquare, 
   SendHorizontal, 
   X 
@@ -46,6 +48,13 @@ export function DetailView({
   const [notes, setNotes] = useState(screenshot?.notes || "");
   const [instruction, setInstruction] = useState("");
 
+  // Update notes when screenshot changes
+  useEffect(() => {
+    if (screenshot) {
+      setNotes(screenshot.notes || "");
+    }
+  }, [screenshot]);
+
   const getBadgeColor = (risk: string) => {
     switch (risk) {
       case 'high':
@@ -69,6 +78,12 @@ export function DetailView({
     if (screenshot && instruction.trim()) {
       onSendInstruction(screenshot.id, instruction);
       setInstruction("");
+    }
+  };
+
+  const openOriginalImage = () => {
+    if (screenshot?.original_url) {
+      window.open(screenshot.original_url, '_blank');
     }
   };
 
@@ -129,6 +144,18 @@ export function DetailView({
               alt="Screenshot" 
               className="w-full object-contain max-h-[400px]"
             />
+            {screenshot.original_url && (
+              <div className="bg-muted/30 p-2 flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={openOriginalImage}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Original
+                </Button>
+              </div>
+            )}
           </div>
           
           {screenshot.ocr_text && (

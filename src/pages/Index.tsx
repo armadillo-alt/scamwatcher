@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { AlertTriangle, Clock, Eye, PieChart, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Clock, Eye, PieChart, RefreshCw, ShieldCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useScreenshots } from "@/hooks/useScreenshots";
 import Header from "@/components/Header";
@@ -10,6 +10,7 @@ import DetailView from "@/components/DetailView";
 import MetricCard from "@/components/MetricCard";
 import { Screenshot } from "@/types";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -19,12 +20,14 @@ const Index = () => {
     filters,
     setFilters,
     loading,
+    error,
     selectedScreenshot,
     setSelectedScreenshot,
     markAsSafe,
     markAsScam,
     addNotes,
-    sendInstruction
+    sendInstruction,
+    refreshScreenshots
   } = useScreenshots();
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -52,6 +55,10 @@ const Index = () => {
     return format(metrics.lastSubmission, "MMM d, yyyy 'at' h:mm a");
   };
 
+  const handleRefresh = () => {
+    refreshScreenshots();
+  };
+
   return (
     <div className="min-h-screen bg-scamguard-background flex flex-col">
       <Header
@@ -62,11 +69,22 @@ const Index = () => {
       />
 
       <main className="flex-1 container mx-auto px-4 py-6 max-w-[1400px] animate-fade-in">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-1">ScamGuard Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor and manage potential scam attempts
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1">ScamGuard Dashboard</h1>
+            <p className="text-muted-foreground">
+              Monitor and manage potential scam attempts
+            </p>
+          </div>
+          <Button 
+            onClick={handleRefresh} 
+            disabled={loading}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh Screenshots
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -95,7 +113,23 @@ const Index = () => {
 
         <FilterBar filters={filters} onFilterChange={setFilters} />
 
-        {screenshots.length === 0 ? (
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-pulse flex flex-col items-center">
+              <RefreshCw className="h-12 w-12 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading screenshots...</p>
+            </div>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-4 mb-6">
+            <h3 className="font-medium mb-2">Error Loading Screenshots</h3>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {!loading && screenshots.length === 0 ? (
           <div className="bg-white border border-scamguard-border rounded-lg p-8 text-center">
             <PieChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No Screenshots Found</h3>

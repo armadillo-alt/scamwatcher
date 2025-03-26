@@ -1,12 +1,136 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import { AlertTriangle, Clock, Eye, PieChart, ShieldCheck } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useScreenshots } from "@/hooks/useScreenshots";
+import Header from "@/components/Header";
+import FilterBar from "@/components/FilterBar";
+import ScamCard from "@/components/ScamCard";
+import DetailView from "@/components/DetailView";
+import MetricCard from "@/components/MetricCard";
+import { Screenshot } from "@/types";
+import { format } from "date-fns";
 
 const Index = () => {
+  const isMobile = useIsMobile();
+  const {
+    screenshots,
+    metrics,
+    filters,
+    setFilters,
+    loading,
+    selectedScreenshot,
+    setSelectedScreenshot,
+    markAsSafe,
+    markAsScam,
+    addNotes,
+    sendInstruction
+  } = useScreenshots();
+
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const handleCardClick = (screenshot: Screenshot) => {
+    setSelectedScreenshot(screenshot);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+  };
+
+  const parentOptions = Array.from(
+    new Set(screenshots.map((s) => s.parent_id))
+  );
+
+  const handleParentChange = (parentId: string) => {
+    console.log(`Changed to parent: ${parentId}`);
+    // In a real app, you'd filter by parent here
+  };
+
+  const formatLastSubmissionTime = () => {
+    if (!metrics.lastSubmission) return "No submissions yet";
+    return format(metrics.lastSubmission, "MMM d, yyyy 'at' h:mm a");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-scamguard-background flex flex-col">
+      <Header
+        userName="Alex"
+        parentOptions={parentOptions}
+        unreviewedCount={metrics.unreviewedCount}
+        onParentChange={handleParentChange}
+      />
+
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-[1400px] animate-fade-in">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold mb-1">ScamGuard Dashboard</h1>
+          <p className="text-muted-foreground">
+            Monitor and manage potential scam attempts
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricCard
+            title="Screenshots This Week"
+            value={metrics.thisWeek}
+            icon={Eye}
+          />
+          <MetricCard
+            title="High Risk Detections"
+            value={metrics.highRisk}
+            icon={AlertTriangle}
+            textColor="text-scamguard-high"
+          />
+          <MetricCard
+            title="Marked as Safe"
+            value={metrics.markedSafe}
+            icon={ShieldCheck}
+          />
+          <MetricCard
+            title="Last Submission"
+            value={formatLastSubmissionTime()}
+            icon={Clock}
+          />
+        </div>
+
+        <FilterBar filters={filters} onFilterChange={setFilters} />
+
+        {screenshots.length === 0 ? (
+          <div className="bg-white border border-scamguard-border rounded-lg p-8 text-center">
+            <PieChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">No Screenshots Found</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              No screenshots match your current filters. Try changing your filter settings or check back later.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {screenshots.map((screenshot) => (
+              <ScamCard
+                key={screenshot.id}
+                screenshot={screenshot}
+                onCardClick={handleCardClick}
+                onMarkSafe={markAsSafe}
+                onMarkScam={markAsScam}
+                onAddNotes={() => {
+                  setSelectedScreenshot(screenshot);
+                  setIsDetailOpen(true);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      <DetailView
+        screenshot={selectedScreenshot}
+        onClose={handleCloseDetail}
+        onMarkSafe={markAsSafe}
+        onMarkScam={markAsScam}
+        onAddNotes={addNotes}
+        onSendInstruction={sendInstruction}
+        isOpen={isDetailOpen}
+      />
     </div>
   );
 };

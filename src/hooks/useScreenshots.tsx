@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Screenshot, FilterOptions } from '../types';
 import { toast } from "sonner";
@@ -16,6 +15,11 @@ const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> =
     const data = await response.json();
     console.log("Google Drive files:", data);
     
+    if (!data.files || data.files.length === 0) {
+      console.warn("No files found in Google Drive folder");
+      throw new Error('No files found in Google Drive folder');
+    }
+    
     // Parse each file and create Screenshot objects
     const screenshots: Screenshot[] = data.files
       .filter((file: any) => file.mimeType.startsWith('image/')) // Only include images
@@ -25,32 +29,22 @@ const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> =
         const originalUrl = `https://drive.google.com/uc?id=${file.id}`;
         
         // Extract timestamp and parent ID from filename when available
-        // Expected format: "TIMESTAMP_PARENT-ID"
-        const parts = file.name.split('_');
+        // Expected format: "${hostname}_${YYYY}-${MM}-${DD}_${hh}-${mm}-${ss}"
         let timestamp = new Date().toISOString();
         let parentId = "Unknown-PC";
         
-        // Try to parse filename for metadata
-        if (parts.length >= 1) {
-          // If only timestamp is available in filename
-          const possibleTimestamp = parts[0].replace(/\D/g, '');
-          if (possibleTimestamp.length > 0) {
-            // Try to convert to a date (this is a simplistic approach)
-            const year = possibleTimestamp.slice(0, 4);
-            const month = possibleTimestamp.slice(4, 6);
-            const day = possibleTimestamp.slice(6, 8);
-            const hour = possibleTimestamp.slice(8, 10) || "00";
-            const minute = possibleTimestamp.slice(10, 12) || "00";
-            
-            if (year && month && day) {
-              timestamp = new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`).toISOString();
-            }
+        const filenameMatch = file.name.match(/^([^_]+)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/);
+        
+        if (filenameMatch) {
+          parentId = filenameMatch[1];
+          const dateTimeStr = filenameMatch[2].replace(/_/g, 'T').replace(/-/g, ':');
+          try {
+            timestamp = new Date(dateTimeStr.replace(/(\d{4}):(\d{2}):(\d{2})T(\d{2}):(\d{2}):(\d{2})/, '$1-$2-$3T$4:$5:$6')).toISOString();
+          } catch (e) {
+            console.warn("Could not parse timestamp from filename:", file.name, e);
           }
-          
-          // If parent ID is available as the second part
-          if (parts.length >= 2) {
-            parentId = parts[1].replace(/\.[^/.]+$/, ""); // Remove file extension if present
-          }
+        } else {
+          console.warn("Filename doesn't match expected format:", file.name);
         }
         
         // Create screenshot object with parsed data
@@ -60,7 +54,7 @@ const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> =
           original_url: originalUrl,
           timestamp: timestamp,
           parent_id: parentId,
-          ocr_text: "Text extraction not yet available",
+          ocr_text: "Text extraction not available for this screenshot",
           risk_level: determineRiskLevel(index), // Temporary random assignment
           status: "unreviewed"
         };
@@ -69,11 +63,11 @@ const fetchGoogleDriveImages = async (folderId: string): Promise<Screenshot[]> =
     // Sort screenshots by timestamp (newest first)
     screenshots.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
+    console.log("Processed Google Drive screenshots:", screenshots);
     return screenshots;
   } catch (error) {
     console.error("Error fetching Google Drive images:", error);
-    toast.error("Failed to load screenshots from Google Drive");
-    return [];
+    throw error; // Re-throw to be handled by the caller
   }
 };
 
@@ -156,36 +150,41 @@ export function useScreenshots() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
 
   // Fetch screenshots from Google Drive on component mount
   useEffect(() => {
-    const loadScreenshots = async () => {
-      setLoading(true);
-      try {
-        const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
-        
-        if (driveScreenshots.length > 0) {
-          setScreenshots(driveScreenshots);
-          toast.success(`Loaded ${driveScreenshots.length} screenshots from Google Drive`);
-        } else {
-          // Fallback to mock data if no screenshots found
-          setScreenshots(MOCK_SCREENSHOTS);
-          toast.info("No screenshots found in Google Drive, using sample data");
-        }
-        
-        setError(null);
-      } catch (err) {
-        console.error("Failed to load screenshots:", err);
-        setScreenshots(MOCK_SCREENSHOTS);
-        setError("Failed to load screenshots from Google Drive");
-        toast.error("Error loading screenshots, using sample data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadScreenshots();
   }, []);
+
+  const loadScreenshots = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
+      
+      if (driveScreenshots.length > 0) {
+        setScreenshots(driveScreenshots);
+        setUseMockData(false);
+        toast.success(`Loaded ${driveScreenshots.length} screenshots from Google Drive`);
+      } else {
+        // If no screenshots found, fallback to mock data
+        setScreenshots(MOCK_SCREENSHOTS);
+        setUseMockData(true);
+        toast.info("No screenshots found in Google Drive, using sample data");
+      }
+    } catch (err) {
+      console.error("Failed to load screenshots:", err);
+      // Only use mock data as fallback when there's an error
+      setScreenshots(MOCK_SCREENSHOTS);
+      setUseMockData(true);
+      setError("Failed to load screenshots from Google Drive. Using sample data instead.");
+      toast.error("Error loading screenshots from Google Drive");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate metrics
   const metrics = {
@@ -240,22 +239,7 @@ export function useScreenshots() {
   
   // Function to manually refresh the screenshots
   const refreshScreenshots = async () => {
-    setLoading(true);
-    try {
-      const driveScreenshots = await fetchGoogleDriveImages(DRIVE_FOLDER_ID);
-      
-      if (driveScreenshots.length > 0) {
-        setScreenshots(driveScreenshots);
-        toast.success(`Refreshed ${driveScreenshots.length} screenshots from Google Drive`);
-      } else {
-        toast.info("No screenshots found in Google Drive");
-      }
-    } catch (err) {
-      console.error("Failed to refresh screenshots:", err);
-      toast.error("Error refreshing screenshots");
-    } finally {
-      setLoading(false);
-    }
+    await loadScreenshots();
   };
   
   const updateScreenshot = (id: string, updates: Partial<Screenshot>) => {
@@ -312,6 +296,7 @@ export function useScreenshots() {
     addNotes,
     sendInstruction,
     updateScreenshot,
-    refreshScreenshots
+    refreshScreenshots,
+    useMockData
   };
 }

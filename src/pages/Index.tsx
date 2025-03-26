@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { AlertTriangle, Clock, Eye, LogOut, PieChart, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Clock, Eye, LogOut, PieChart, RefreshCw, ShieldCheck, InfoIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useScreenshots } from "@/hooks/useScreenshots";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import { Screenshot } from "@/types";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -30,7 +31,8 @@ const Index = () => {
     markAsScam,
     addNotes,
     sendInstruction,
-    refreshScreenshots
+    refreshScreenshots,
+    useMockData
   } = useScreenshots();
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -104,6 +106,16 @@ const Index = () => {
             </Button>
           </div>
         </div>
+
+        {useMockData && (
+          <Alert className="mb-6">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Using sample data</AlertTitle>
+            <AlertDescription>
+              We couldn't access your Google Drive screenshots. Click "Refresh Screenshots" to try again, or check that your Google Drive folder contains images.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <MetricCard

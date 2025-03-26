@@ -1,8 +1,9 @@
 
 import { useState } from "react";
-import { AlertTriangle, Clock, Eye, PieChart, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Clock, Eye, LogOut, PieChart, RefreshCw, ShieldCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useScreenshots } from "@/hooks/useScreenshots";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import FilterBar from "@/components/FilterBar";
 import ScamCard from "@/components/ScamCard";
@@ -11,9 +12,11 @@ import MetricCard from "@/components/MetricCard";
 import { Screenshot } from "@/types";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const Index = () => {
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
   const {
     screenshots,
     metrics,
@@ -59,10 +62,15 @@ const Index = () => {
     refreshScreenshots();
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully");
+  };
+
   return (
     <div className="min-h-screen bg-scamguard-background flex flex-col">
       <Header
-        userName="Alex"
+        userName={user?.username || "Guest"}
         parentOptions={parentOptions}
         unreviewedCount={metrics.unreviewedCount}
         onParentChange={handleParentChange}
@@ -76,15 +84,25 @@ const Index = () => {
               Monitor and manage potential scam attempts
             </p>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            disabled={loading}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh Screenshots
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleRefresh} 
+              disabled={loading}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh Screenshots
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

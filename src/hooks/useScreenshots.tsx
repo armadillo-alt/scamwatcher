@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Screenshot, FilterOptions } from '../types';
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Mock data for Screenshots
 const MOCK_SCREENSHOTS: Screenshot[] = [

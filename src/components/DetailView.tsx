@@ -48,7 +48,9 @@ export function DetailView({
   const [notes, setNotes] = useState(screenshot?.notes || "");
   const [instruction, setInstruction] = useState("");
   const [displayUrl, setDisplayUrl] = useState<string>("");
+  const [originalUrl, setOriginalUrl] = useState<string>("");
   const [imageError, setImageError] = useState<boolean>(false);
+  const [isGoogleDriveUrl, setIsGoogleDriveUrl] = useState<boolean>(false);
 
   // Update notes when screenshot changes
   useEffect(() => {
@@ -56,8 +58,14 @@ export function DetailView({
       setNotes(screenshot.notes || "");
       setImageError(false);
       
-      // Process image URL
-      if (screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com/')) {
+      // Check if it's a Google Drive URL
+      const isGDriveUrl = screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com');
+      setIsGoogleDriveUrl(isGDriveUrl);
+      
+      // Store original URL for "View Original" button
+      setOriginalUrl(screenshot.screenshot_url || "");
+      
+      if (isGDriveUrl) {
         // Extract file ID from Google Drive URL patterns
         let fileId = "";
         
@@ -84,13 +92,15 @@ export function DetailView({
         }
         
         if (fileId) {
-          // Use the Google Drive content API format for public files
+          // For the detail view, we'll try to use a medium-sized version
           setDisplayUrl(`https://drive.google.com/uc?id=${fileId}&export=view`);
         } else {
-          // If we couldn't extract the ID, use the original URL
-          setDisplayUrl(screenshot.screenshot_url);
+          // If we couldn't extract the ID, set empty URL
+          setDisplayUrl("");
+          setImageError(true);
         }
       } else {
+        // Not a Google Drive URL, use directly
         setDisplayUrl(screenshot.screenshot_url);
       }
     }
@@ -123,15 +133,13 @@ export function DetailView({
   };
 
   const openOriginalImage = () => {
-    if (screenshot?.original_url) {
-      window.open(screenshot.original_url, '_blank');
-    } else if (screenshot?.screenshot_url) {
-      window.open(screenshot.screenshot_url, '_blank');
+    if (originalUrl) {
+      window.open(originalUrl, '_blank');
     }
   };
   
   const handleImageError = () => {
-    console.error(`Failed to load image: ${displayUrl}`);
+    console.error(`Failed to load detail image: ${displayUrl}`);
     setImageError(true);
   };
 
@@ -187,16 +195,16 @@ export function DetailView({
           </div>
           
           <div className="border border-scamguard-border rounded-lg overflow-hidden">
-            {imageError ? (
+            {imageError || !displayUrl ? (
               <div className="w-full h-[400px] bg-gray-200 flex items-center justify-center flex-col text-gray-500 p-4">
-                <p className="mb-2">Image failed to load</p>
+                <p className="mb-4">Image preview unavailable</p>
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm" 
                   onClick={openOriginalImage}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Try viewing in Google Drive
+                  View in Google Drive
                 </Button>
               </div>
             ) : (

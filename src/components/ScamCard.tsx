@@ -1,5 +1,5 @@
 
-import { AlertTriangle, Check, Clock, Eye, MessageCircle } from "lucide-react";
+import { AlertTriangle, Check, Clock, Eye, ExternalLink, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +22,19 @@ export function ScamCard({
   onMarkScam, 
   onAddNotes 
 }: ScamCardProps) {
-  const [imageUrl, setImageUrl] = useState<string>(screenshot.screenshot_url);
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [imageError, setImageError] = useState<boolean>(false);
+  const [isGoogleDriveUrl, setIsGoogleDriveUrl] = useState<boolean>(false);
 
   useEffect(() => {
-    // Handle Google Drive URLs - convert them to direct image URLs if needed
-    if (screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com/')) {
+    // Reset error state when screenshot changes
+    setImageError(false);
+    
+    // Check if it's a Google Drive URL
+    const isGDriveUrl = screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com');
+    setIsGoogleDriveUrl(isGDriveUrl);
+    
+    if (isGDriveUrl) {
       // Extract file ID from Google Drive URL patterns
       let fileId = "";
       
@@ -54,13 +61,15 @@ export function ScamCard({
       }
       
       if (fileId) {
-        // Use the Google Drive content API format for public files
-        setImageUrl(`https://drive.google.com/uc?id=${fileId}&export=view`);
+        // For card preview, we'll use a smaller thumbnail version
+        setImageUrl(`https://drive.google.com/thumbnail?id=${fileId}&sz=w400`);
       } else {
-        // If we couldn't extract the ID, use the original URL
-        setImageUrl(screenshot.screenshot_url);
+        // If we couldn't extract the ID, use a placeholder
+        setImageUrl("");
+        setImageError(true);
       }
     } else {
+      // Not a Google Drive URL, use directly
       setImageUrl(screenshot.screenshot_url);
     }
   }, [screenshot.screenshot_url]);
@@ -107,7 +116,7 @@ export function ScamCard({
   };
 
   const handleImageError = () => {
-    console.error(`Failed to load image: ${imageUrl}`);
+    console.error(`Failed to load image preview: ${imageUrl}`);
     setImageError(true);
   };
 
@@ -118,18 +127,48 @@ export function ScamCard({
     >
       <div className="flex flex-col h-full">
         <div className="relative">
-          {imageError ? (
-            <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-500">
-              Image unavailable
+          {imageError || !imageUrl ? (
+            <div className="w-full h-40 bg-gray-200 flex items-center justify-center flex-col text-gray-500">
+              <p className="mb-2">Preview unavailable</p>
+              {isGoogleDriveUrl && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(screenshot.screenshot_url, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Open in Drive
+                </Button>
+              )}
             </div>
           ) : (
-            <img 
-              src={imageUrl} 
-              alt="Screenshot" 
-              className="w-full h-40 object-cover"
-              loading="eager"
-              onError={handleImageError}
-            />
+            <div className="relative">
+              <img 
+                src={imageUrl} 
+                alt="Screenshot" 
+                className="w-full h-40 object-cover"
+                loading="eager"
+                onError={handleImageError}
+              />
+              {isGoogleDriveUrl && (
+                <Button 
+                  variant="outline" 
+                  size="xs"
+                  className="absolute bottom-2 right-2 bg-white/80 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(screenshot.screenshot_url, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Open in Drive
+                </Button>
+              )}
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           <Badge 

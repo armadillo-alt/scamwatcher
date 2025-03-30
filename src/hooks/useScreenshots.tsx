@@ -104,11 +104,11 @@ export function useScreenshots() {
 
       const csvText = await res.text();
 
-      // Use PapaParse to parse the CSV. The 'header' option interprets the first row as column names.
+      // Use PapaParse to parse the CSV
       const parsed = Papa.parse(csvText, { header: true });
-      const rows = parsed.data as any[]; // Each item is an object with columns keyed by your sheet headers
+      const rows = parsed.data as any[];
 
-      // Map each row to your Screenshot shape (customize if your sheet headers differ)
+      // Map each row to your Screenshot shape
       const realData: Screenshot[] = rows.map((row) => ({
         id: row["id"] || "",
         screenshot_url: row["screenshot_url"] || "",
@@ -117,7 +117,6 @@ export function useScreenshots() {
         ocr_text: row["ocr_text"] || "",
         risk_level: row["risk_level"] || "low",
         status: row["status"] || "unreviewed",
-        // If you have other columns (notes, original_url, etc.), map them too
       }));
 
       setScreenshots(realData);
@@ -235,9 +234,6 @@ export function useScreenshots() {
     toast.success("Instruction sent to parent");
   };
 
-  // ==============================
-  //       HOOK RETURN
-  // ==============================
   return {
     screenshots: filteredScreenshots,
     metrics,

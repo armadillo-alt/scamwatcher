@@ -34,4 +34,225 @@ const MOCK_SCREENSHOTS: Screenshot[] = [
     screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=Email+Login",
     timestamp: "2025-03-26T12:15:00Z",
     parent_id: "Home-PC",
-    ocr_text: "Gmail sign-in page. Enter email and password_
+    ocr_text: "Gmail sign-in page. Enter email and password.",
+    risk_level: "low",
+    status: "reviewed",
+  },
+  {
+    id: "4",
+    screenshot_url: "https://placehold.co/600x400/FFEEF0/F55/png?text=Lottery+Winner",
+    timestamp: "2025-03-25T17:20:00Z",
+    parent_id: "Work-PC",
+    ocr_text:
+      "Congratulations! You've won $5,000,000 in the international lottery. Send your details to claim your prize now!",
+    risk_level: "high",
+    status: "unreviewed",
+  },
+  {
+    id: "5",
+    screenshot_url: "https://placehold.co/600x400/E6FFEF/2D5/png?text=News+Article",
+    timestamp: "2025-03-25T15:10:00Z",
+    parent_id: "Home-PC",
+    ocr_text:
+      "Leading scientists discover breakthrough in Alzheimer's research that could lead to new treatments.",
+    risk_level: "low",
+    status: "reviewed",
+  },
+  {
+    id: "6",
+    screenshot_url: "https://placehold.co/600x400/FFF5E6/FA2/png?text=Bank+Alert",
+    timestamp: "2025-03-25T11:45:00Z",
+    parent_id: "Home-PC",
+    ocr_text:
+      "Your bank account has been temporarily locked due to suspicious activity. Click here to restore access.",
+    risk_level: "medium",
+    status: "unreviewed",
+  },
+];
+
+export function useScreenshots() {
+  const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
+  const [filteredScreenshots, setFilteredScreenshots] = useState<Screenshot[]>([]);
+  const [filters, setFilters] = useState<FilterOptions>({
+    risk_level: "all",
+    status: "all",
+    sort: "newest",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
+
+  useEffect(() => {
+    loadScreenshots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ==============================
+  //       DATA LOADING
+  // ==============================
+  const loadScreenshots = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Attempt to fetch the CSV from Google Sheets
+      const res = await fetch(SHEETS_CSV_URL);
+      if (!res.ok) {
+        throw new Error("Failed to fetch from Google Sheets");
+      }
+
+      const csvText = await res.text();
+
+      // Use PapaParse to parse the CSV. The 'header' option interprets the first row as column names.
+      const parsed = Papa.parse(csvText, { header: true });
+      const rows = parsed.data as any[]; // Each item is an object with columns keyed by your sheet headers
+
+      // Map each row to your Screenshot shape (customize if your sheet headers differ)
+      const realData: Screenshot[] = rows.map((row) => ({
+        id: row["id"] || "",
+        screenshot_url: row["screenshot_url"] || "",
+        timestamp: row["timestamp"] || new Date().toISOString(),
+        parent_id: row["parent_id"] || "Unknown-PC",
+        ocr_text: row["ocr_text"] || "",
+        risk_level: row["risk_level"] || "low",
+        status: row["status"] || "unreviewed",
+        // If you have other columns (notes, original_url, etc.), map them too
+      }));
+
+      setScreenshots(realData);
+      setUseMockData(false);
+    } catch (err) {
+      console.error("Failed to load screenshots from Google Sheets:", err);
+      // Fallback to mock data if fetch fails
+      setScreenshots(MOCK_SCREENSHOTS);
+      setUseMockData(true);
+      setError("Using mock data – failed to fetch from Google Sheets");
+      toast.info("Using mock data – Google Sheets not available");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshScreenshots = async () => {
+    await loadScreenshots();
+  };
+
+  // ==============================
+  //       FILTERING / SORTING
+  // ==============================
+  useEffect(() => {
+    applyFilters();
+  }, [filters, screenshots]);
+
+  const applyFilters = () => {
+    let filtered = [...screenshots];
+
+    if (filters.risk_level !== "all") {
+      filtered = filtered.filter((s) => s.risk_level === filters.risk_level);
+    }
+
+    if (filters.status !== "all") {
+      filtered = filtered.filter((s) => s.status === filters.status);
+    }
+
+    filtered.sort((a, b) => {
+      if (filters.sort === "newest") {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      } else {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      }
+    });
+
+    setFilteredScreenshots(filtered);
+  };
+
+  // ==============================
+  //       METRICS
+  // ==============================
+  const metrics = {
+    total: screenshots.length,
+    thisWeek: screenshots.filter((s) => {
+      const screenshotDate = new Date(s.timestamp);
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      return screenshotDate >= oneWeekAgo;
+    }).length,
+    highRisk: screenshots.filter((s) => s.risk_level === "high").length,
+    markedSafe: screenshots.filter((s) => s.status === "reviewed").length,
+    unreviewedCount: screenshots.filter((s) => s.status === "unreviewed").length,
+    lastSubmission:
+      screenshots.length > 0
+        ? new Date(
+            screenshots.reduce((latest, screenshot) => {
+              return new Date(screenshot.timestamp) > new Date(latest.timestamp)
+                ? screenshot
+                : latest;
+            }, screenshots[0]).timestamp
+          )
+        : null,
+  };
+
+  // ==============================
+  //       CRUD-Like Operations
+  // ==============================
+  const updateScreenshot = (id: string, updates: Partial<Screenshot>) => {
+    setLoading(true);
+
+    setTimeout(() => {
+      setScreenshots((prev) =>
+        prev.map((screenshot) =>
+          screenshot.id === id ? { ...screenshot, ...updates } : screenshot
+        )
+      );
+
+      if (selectedScreenshot?.id === id) {
+        setSelectedScreenshot((prev) => (prev ? { ...prev, ...updates } : null));
+      }
+
+      setLoading(false);
+      toast.success("Screenshot updated successfully");
+    }, 500);
+  };
+
+  const markAsSafe = (id: string) => {
+    updateScreenshot(id, { status: "reviewed" });
+  };
+
+  const markAsScam = (id: string) => {
+    updateScreenshot(id, { status: "reviewed" });
+    toast("🚨 Reported as scam", {
+      description: "This screenshot has been flagged as a scam.",
+    });
+  };
+
+  const addNotes = (id: string, notes: string) => {
+    updateScreenshot(id, { notes });
+  };
+
+  const sendInstruction = (id: string, instruction: string) => {
+    console.log(`Sending instruction to parent for screenshot ${id}: ${instruction}`);
+    toast.success("Instruction sent to parent");
+  };
+
+  // ==============================
+  //       HOOK RETURN
+  // ==============================
+  return {
+    screenshots: filteredScreenshots,
+    metrics,
+    filters,
+    setFilters,
+    loading,
+    error,
+    selectedScreenshot,
+    setSelectedScreenshot,
+    markAsSafe,
+    markAsScam,
+    addNotes,
+    sendInstruction,
+    updateScreenshot,
+    refreshScreenshots,
+    useMockData,
+  };
+}

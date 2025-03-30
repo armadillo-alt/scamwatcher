@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 // Replace this with your *published* Google Sheets CSV link.
 const SHEETS_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXTBfNghPw05Sah8c4GAwMlIN00taKsK5aMIMxPEMYTQ5usLAlyXdwTm8JumBt71DsA_qcVrC-mS33/pub?output=csv";
+  "https://docs.google.com/spreadsheets/d/1CWN5H9L4Rf_dxX3ncWzPSpyLrvxRU38uhMljwC8DjQY/edit?usp=sharing";
 
 // Fallback mock data (used only if fetching from Google Sheets fails)
 const MOCK_SCREENSHOTS: Screenshot[] = [

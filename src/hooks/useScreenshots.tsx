@@ -3,7 +3,7 @@ import Papa from "papaparse";
 import { Screenshot, FilterOptions } from "../types";
 import { toast } from "sonner";
 
-// Replace this with your *published* Google Sheets CSV link.
+// Use your published Google Sheets CSV link.
 const SHEETS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXTBfNghPw05Sah8c4GAwMlIN00taKsK5aMIMxPEMYTQ5usLAlyXdwTm8JumBt71DsA_qcVrC-mS33/pub?gid=0&single=true&output=csv";
 
@@ -103,6 +103,7 @@ export function useScreenshots() {
       const parsed = Papa.parse(csvText, { header: true });
       const rows = parsed.data as any[];
 
+      // IMPORTANT: Ensure the keys below match the column headers in your CSV.
       const realData: Screenshot[] = rows.map((row) => ({
         id: row["id"] || "",
         screenshot_url: row["screenshot_url"] || "",

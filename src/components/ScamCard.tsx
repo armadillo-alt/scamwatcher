@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Screenshot } from "@/types";
 import { formatDistanceToNow } from "date-fns";
+import { useState, useEffect } from "react";
 
 interface ScamCardProps {
   screenshot: Screenshot;
@@ -21,6 +22,21 @@ export function ScamCard({
   onMarkScam, 
   onAddNotes 
 }: ScamCardProps) {
+  const [imageUrl, setImageUrl] = useState<string>(screenshot.screenshot_url);
+  const [imageError, setImageError] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Handle Google Drive URLs - convert them to direct image URLs if needed
+    if (screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com/')) {
+      const urlWithExport = screenshot.screenshot_url.includes('&export=view') 
+        ? screenshot.screenshot_url 
+        : `${screenshot.screenshot_url}&export=view`;
+      setImageUrl(urlWithExport);
+    } else {
+      setImageUrl(screenshot.screenshot_url);
+    }
+  }, [screenshot.screenshot_url]);
+
   const getBadgeColor = (risk: string) => {
     switch (risk) {
       case 'high':
@@ -62,6 +78,11 @@ export function ScamCard({
     action(screenshot.id);
   };
 
+  const handleImageError = () => {
+    console.error(`Failed to load image: ${imageUrl}`);
+    setImageError(true);
+  };
+
   return (
     <Card 
       onClick={handleClick}
@@ -69,12 +90,19 @@ export function ScamCard({
     >
       <div className="flex flex-col h-full">
         <div className="relative">
-          <img 
-            src={screenshot.screenshot_url} 
-            alt="Screenshot" 
-            className="w-full h-40 object-cover"
-            loading="eager"
-          />
+          {imageError ? (
+            <div className="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-500">
+              Image unavailable
+            </div>
+          ) : (
+            <img 
+              src={imageUrl} 
+              alt="Screenshot" 
+              className="w-full h-40 object-cover"
+              loading="eager"
+              onError={handleImageError}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           <Badge 
             className={`absolute top-3 right-3 font-medium ${getBadgeColor(screenshot.risk_level)}`}
@@ -86,15 +114,15 @@ export function ScamCard({
         
         <div className="p-4 flex-grow">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium">{screenshot.parent_id}</h3>
+            <h3 className="font-medium">{screenshot.parent_id || 'Unknown device'}</h3>
             <div className="text-xs text-muted-foreground flex items-center">
               <Clock className="h-3 w-3 mr-1" />
-              {timeAgo(screenshot.timestamp)}
+              {screenshot.timestamp ? timeAgo(screenshot.timestamp) : 'Unknown time'}
             </div>
           </div>
           
           <p className="text-xs text-muted-foreground mb-1">
-            {formatDate(screenshot.timestamp)}
+            {screenshot.timestamp ? formatDate(screenshot.timestamp) : 'No date available'}
           </p>
           
           {screenshot.ocr_text && (

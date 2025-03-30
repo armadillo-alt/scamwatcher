@@ -28,10 +28,38 @@ export function ScamCard({
   useEffect(() => {
     // Handle Google Drive URLs - convert them to direct image URLs if needed
     if (screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com/')) {
-      const urlWithExport = screenshot.screenshot_url.includes('&export=view') 
-        ? screenshot.screenshot_url 
-        : `${screenshot.screenshot_url}&export=view`;
-      setImageUrl(urlWithExport);
+      // Extract file ID from Google Drive URL patterns
+      let fileId = "";
+      
+      // Pattern for "drive.google.com/file/d/ID/view" format
+      if (screenshot.screenshot_url.includes('/file/d/')) {
+        const match = screenshot.screenshot_url.match(/\/file\/d\/([^/]+)/);
+        if (match && match[1]) {
+          fileId = match[1];
+        }
+      } 
+      // Pattern for "drive.google.com/uc?id=ID" format
+      else if (screenshot.screenshot_url.includes('id=')) {
+        const match = screenshot.screenshot_url.match(/id=([^&]+)/);
+        if (match && match[1]) {
+          fileId = match[1];
+        }
+      }
+      // Pattern for "drive.google.com/open?id=ID" format
+      else if (screenshot.screenshot_url.includes('open?id=')) {
+        const match = screenshot.screenshot_url.match(/open\?id=([^&]+)/);
+        if (match && match[1]) {
+          fileId = match[1];
+        }
+      }
+      
+      if (fileId) {
+        // Use the Google Drive content API format for public files
+        setImageUrl(`https://drive.google.com/uc?id=${fileId}&export=view`);
+      } else {
+        // If we couldn't extract the ID, use the original URL
+        setImageUrl(screenshot.screenshot_url);
+      }
     } else {
       setImageUrl(screenshot.screenshot_url);
     }

@@ -47,11 +47,52 @@ export function DetailView({
 }: DetailViewProps) {
   const [notes, setNotes] = useState(screenshot?.notes || "");
   const [instruction, setInstruction] = useState("");
+  const [displayUrl, setDisplayUrl] = useState<string>("");
+  const [imageError, setImageError] = useState<boolean>(false);
 
   // Update notes when screenshot changes
   useEffect(() => {
     if (screenshot) {
       setNotes(screenshot.notes || "");
+      setImageError(false);
+      
+      // Process image URL
+      if (screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com/')) {
+        // Extract file ID from Google Drive URL patterns
+        let fileId = "";
+        
+        // Pattern for "drive.google.com/file/d/ID/view" format
+        if (screenshot.screenshot_url.includes('/file/d/')) {
+          const match = screenshot.screenshot_url.match(/\/file\/d\/([^/]+)/);
+          if (match && match[1]) {
+            fileId = match[1];
+          }
+        } 
+        // Pattern for "drive.google.com/uc?id=ID" format
+        else if (screenshot.screenshot_url.includes('id=')) {
+          const match = screenshot.screenshot_url.match(/id=([^&]+)/);
+          if (match && match[1]) {
+            fileId = match[1];
+          }
+        }
+        // Pattern for "drive.google.com/open?id=ID" format
+        else if (screenshot.screenshot_url.includes('open?id=')) {
+          const match = screenshot.screenshot_url.match(/open\?id=([^&]+)/);
+          if (match && match[1]) {
+            fileId = match[1];
+          }
+        }
+        
+        if (fileId) {
+          // Use the Google Drive content API format for public files
+          setDisplayUrl(`https://drive.google.com/uc?id=${fileId}&export=view`);
+        } else {
+          // If we couldn't extract the ID, use the original URL
+          setDisplayUrl(screenshot.screenshot_url);
+        }
+      } else {
+        setDisplayUrl(screenshot.screenshot_url);
+      }
     }
   }, [screenshot]);
 
@@ -84,7 +125,14 @@ export function DetailView({
   const openOriginalImage = () => {
     if (screenshot?.original_url) {
       window.open(screenshot.original_url, '_blank');
+    } else if (screenshot?.screenshot_url) {
+      window.open(screenshot.screenshot_url, '_blank');
     }
+  };
+  
+  const handleImageError = () => {
+    console.error(`Failed to load image: ${displayUrl}`);
+    setImageError(true);
   };
 
   if (!screenshot) return null;
@@ -112,14 +160,14 @@ export function DetailView({
             <div className="flex items-center gap-2">
               <Computer className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Device:</span>
-              <span className="font-medium">{screenshot.parent_id}</span>
+              <span className="font-medium">{screenshot.parent_id || 'Unknown'}</span>
             </div>
             
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Date:</span>
               <span className="font-medium">
-                {format(new Date(screenshot.timestamp), 'MMM d, yyyy')}
+                {screenshot.timestamp ? format(new Date(screenshot.timestamp), 'MMM d, yyyy') : 'Unknown'}
               </span>
             </div>
             
@@ -127,35 +175,48 @@ export function DetailView({
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Time:</span>
               <span className="font-medium">
-                {format(new Date(screenshot.timestamp), 'h:mm a')}
+                {screenshot.timestamp ? format(new Date(screenshot.timestamp), 'h:mm a') : 'Unknown'}
               </span>
             </div>
             
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Status:</span>
-              <span className="font-medium capitalize">{screenshot.status}</span>
+              <span className="font-medium capitalize">{screenshot.status || 'Unknown'}</span>
             </div>
           </div>
           
           <div className="border border-scamguard-border rounded-lg overflow-hidden">
-            <img 
-              src={screenshot.screenshot_url} 
-              alt="Screenshot" 
-              className="w-full object-contain max-h-[400px]"
-            />
-            {screenshot.original_url && (
-              <div className="bg-muted/30 p-2 flex justify-end gap-2">
+            {imageError ? (
+              <div className="w-full h-[400px] bg-gray-200 flex items-center justify-center flex-col text-gray-500 p-4">
+                <p className="mb-2">Image failed to load</p>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={openOriginalImage}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  View Original
+                  Try viewing in Google Drive
                 </Button>
               </div>
+            ) : (
+              <img 
+                src={displayUrl} 
+                alt="Screenshot" 
+                className="w-full object-contain max-h-[400px]"
+                onError={handleImageError}
+              />
             )}
+            <div className="bg-muted/30 p-2 flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={openOriginalImage}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Original
+              </Button>
+            </div>
           </div>
           
           {screenshot.ocr_text && (

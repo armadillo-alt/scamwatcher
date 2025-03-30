@@ -73,7 +73,7 @@ export function ScamCard({
             src={screenshot.screenshot_url} 
             alt="Screenshot" 
             className="w-full h-40 object-cover"
-            loading="lazy"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           <Badge 

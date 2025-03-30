@@ -88,15 +88,11 @@ export function useScreenshots() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ==============================
-  //       DATA LOADING
-  // ==============================
   const loadScreenshots = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Attempt to fetch the CSV from Google Sheets
       const res = await fetch(SHEETS_CSV_URL);
       if (!res.ok) {
         throw new Error("Failed to fetch from Google Sheets");
@@ -104,11 +100,9 @@ export function useScreenshots() {
 
       const csvText = await res.text();
 
-      // Use PapaParse to parse the CSV
       const parsed = Papa.parse(csvText, { header: true });
       const rows = parsed.data as any[];
 
-      // Map each row to your Screenshot shape
       const realData: Screenshot[] = rows.map((row) => ({
         id: row["id"] || "",
         screenshot_url: row["screenshot_url"] || "",
@@ -123,7 +117,6 @@ export function useScreenshots() {
       setUseMockData(false);
     } catch (err) {
       console.error("Failed to load screenshots from Google Sheets:", err);
-      // Fallback to mock data if fetch fails
       setScreenshots(MOCK_SCREENSHOTS);
       setUseMockData(true);
       setError("Using mock data – failed to fetch from Google Sheets");
@@ -137,9 +130,6 @@ export function useScreenshots() {
     await loadScreenshots();
   };
 
-  // ==============================
-  //       FILTERING / SORTING
-  // ==============================
   useEffect(() => {
     applyFilters();
   }, [filters, screenshots]);
@@ -166,9 +156,6 @@ export function useScreenshots() {
     setFilteredScreenshots(filtered);
   };
 
-  // ==============================
-  //       METRICS
-  // ==============================
   const metrics = {
     total: screenshots.length,
     thisWeek: screenshots.filter((s) => {
@@ -192,9 +179,6 @@ export function useScreenshots() {
         : null,
   };
 
-  // ==============================
-  //       CRUD-Like Operations
-  // ==============================
   const updateScreenshot = (id: string, updates: Partial<Screenshot>) => {
     setLoading(true);
 

@@ -10,7 +10,10 @@ import {
   ArrowRight, 
   Check,
   AlertTriangle,
-  Clock
+  Clock,
+  BrainCircuit,
+  MessagesSquare,
+  KeyRound
 } from "lucide-react";
 
 const Landing = () => {
@@ -43,16 +46,16 @@ const Landing = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <h1 className="text-5xl font-bold mb-6 text-gray-900 animate-fade-in">
-          Protect Your Loved Ones from Online Scams
+          One Button. One Scan. One Less Thing to Worry About.
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10 animate-fade-in">
-          ScamGuard monitors device activity to identify potential scams and fraud attempts, 
-          allowing caregivers to intervene before harm occurs.
+          ScamGuard uses AI to detect online scams in real time — protecting your loved ones 
+          and only alerting you when it really matters.
         </p>
         <div className="flex justify-center gap-4 animate-fade-in">
           <Link to="/login">
             <Button size="lg" className="group">
-              Get Started
+              Try ScamGuard Free
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
@@ -74,14 +77,14 @@ const Landing = () => {
               <p className="text-gray-600">Scam attempts targeting seniors annually</p>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm animate-scale-in">
-              <Clock className="h-10 w-10 text-scamguard-medium mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">24/7</h3>
-              <p className="text-gray-600">Continuous monitoring and protection</p>
+              <BrainCircuit className="h-10 w-10 text-scamguard-medium mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-2">AI-Powered</h3>
+              <p className="text-gray-600">Smart detection means no false alarms</p>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm animate-scale-in">
               <ShieldCheck className="h-10 w-10 text-scamguard-low mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">95%</h3>
-              <p className="text-gray-600">Success rate in identifying scam attempts</p>
+              <h3 className="text-2xl font-bold mb-2">Peace of Mind</h3>
+              <p className="text-gray-600">For both caregivers and their loved ones</p>
             </div>
           </div>
         </div>
@@ -89,33 +92,42 @@ const Landing = () => {
 
       {/* How It Works Section */}
       <section id="how-it-works" className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-16">Simple Setup, Powerful Protection</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <h2 className="text-3xl font-bold text-center mb-16">How It Works - Simple by Design</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="flex flex-col items-center text-center">
             <div className="bg-scamguard-subtle p-6 rounded-full mb-6">
-              <Smartphone className="h-10 w-10 text-scamguard-high" />
+              <KeyRound className="h-10 w-10 text-scamguard-high" />
             </div>
-            <h3 className="text-xl font-bold mb-4">1. Install The Software</h3>
+            <h3 className="text-xl font-bold mb-4">1. Press the Red Key</h3>
             <p className="text-gray-600">
-              Simply download and install our lightweight monitoring software on your loved one's device.
+              When in doubt, your loved one presses one labeled key to check if something is a scam.
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
             <div className="bg-scamguard-subtle p-6 rounded-full mb-6">
-              <UserCheck className="h-10 w-10 text-scamguard-medium" />
+              <BrainCircuit className="h-10 w-10 text-scamguard-medium" />
             </div>
-            <h3 className="text-xl font-bold mb-4">2. Place the Security Dot</h3>
+            <h3 className="text-xl font-bold mb-4">2. AI Analyzes the Screen</h3>
             <p className="text-gray-600">
-              Add the unobtrusive security dot to the device's keyboard for enhanced monitoring capabilities.
+              Our AI scans the screenshot for suspicious content, fake URLs, and scam indicators.
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
             <div className="bg-scamguard-subtle p-6 rounded-full mb-6">
-              <MonitorSmartphone className="h-10 w-10 text-scamguard-low" />
+              <AlertTriangle className="h-10 w-10 text-scamguard-medium" />
             </div>
-            <h3 className="text-xl font-bold mb-4">3. Monitor Remotely</h3>
+            <h3 className="text-xl font-bold mb-4">3. Risk Assessment</h3>
             <p className="text-gray-600">
-              Access the caregiver dashboard from anywhere to review activity and receive alerts.
+              Content is analyzed and assigned a risk level: Safe, Suspicious, or Scam.
+            </p>
+          </div>
+          <div className="flex flex-col items-center text-center">
+            <div className="bg-scamguard-subtle p-6 rounded-full mb-6">
+              <MessagesSquare className="h-10 w-10 text-scamguard-low" />
+            </div>
+            <h3 className="text-xl font-bold mb-4">4. Smart Alerts</h3>
+            <p className="text-gray-600">
+              Caregivers are only notified when real risks are detected, with no false alarms.
             </p>
           </div>
         </div>
@@ -124,27 +136,27 @@ const Landing = () => {
       {/* Features Section */}
       <section className="bg-gray-50 py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-16">Comprehensive Protection Features</h2>
+          <h2 className="text-3xl font-bold text-center mb-16">Smart Protection, Not Spam</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="bg-white p-8 rounded-lg shadow-sm flex items-start gap-4">
               <div className="bg-scamguard-subtle p-3 rounded-full shrink-0">
-                <AlertTriangle className="h-6 w-6 text-scamguard-high" />
+                <BrainCircuit className="h-6 w-6 text-scamguard-high" />
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2">Scam Detection</h3>
+                <h3 className="text-xl font-bold mb-2">AI-Driven Scam Detection</h3>
                 <p className="text-gray-600">
-                  Advanced algorithms identify potential scam attempts based on content and patterns.
+                  Advanced algorithms identify scams based on content, suspicious URLs, and known patterns.
                 </p>
               </div>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm flex items-start gap-4">
               <div className="bg-scamguard-subtle p-3 rounded-full shrink-0">
-                <Clock className="h-6 w-6 text-scamguard-medium" />
+                <KeyRound className="h-6 w-6 text-scamguard-medium" />
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2">Real-Time Alerts</h3>
+                <h3 className="text-xl font-bold mb-2">One-Key Simplicity</h3>
                 <p className="text-gray-600">
-                  Receive immediate notifications when suspicious activity is detected.
+                  Even users with zero tech ability can get instant help with a single keystroke.
                 </p>
               </div>
             </div>
@@ -153,20 +165,20 @@ const Landing = () => {
                 <MonitorSmartphone className="h-6 w-6 text-scamguard-low" />
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2">Screen Monitoring</h3>
+                <h3 className="text-xl font-bold mb-2">Real-Time Monitoring</h3>
                 <p className="text-gray-600">
-                  Capture screenshots of suspicious content for review and intervention.
+                  View screenshots only when intervention is needed, with clear risk assessments.
                 </p>
               </div>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm flex items-start gap-4">
               <div className="bg-scamguard-subtle p-3 rounded-full shrink-0">
-                <UserCheck className="h-6 w-6 text-scamguard-medium" />
+                <MessagesSquare className="h-6 w-6 text-scamguard-medium" />
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2">Caregiver Instructions</h3>
+                <h3 className="text-xl font-bold mb-2">Direct Communication</h3>
                 <p className="text-gray-600">
-                  Send instructions directly to the user's device to help them avoid potential scams.
+                  Send instructions directly to help your loved one avoid potential scams in the moment.
                 </p>
               </div>
             </div>
@@ -174,18 +186,43 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Demo Section */}
+      {/* Setup Simplicity Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/2 p-10 flex flex-col justify-center">
-              <h2 className="text-3xl font-bold mb-6">See ScamGuard In Action</h2>
-              <p className="text-gray-600 mb-8">
-                Our intuitive dashboard gives caregivers complete visibility into potential threats and allows for 
-                immediate intervention when needed.
-              </p>
+              <h2 className="text-3xl font-bold mb-6">Simple 3-Step Setup</h2>
+              <ul className="space-y-6">
+                <li className="flex items-start gap-3">
+                  <div className="bg-scamguard-low/20 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold text-scamguard-low mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-medium">Place the ScamGuard dot on the keyboard</p>
+                    <p className="text-gray-600 text-sm">Our dot marks the key that activates the scam check</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-scamguard-medium/20 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold text-scamguard-medium mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-medium">Install our lightweight software</p>
+                    <p className="text-gray-600 text-sm">Simple download and installation with no technical skills required</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-scamguard-high/20 h-6 w-6 rounded-full flex items-center justify-center text-sm font-bold text-scamguard-high mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-medium">Monitor from anywhere</p>
+                    <p className="text-gray-600 text-sm">Access the caregiver dashboard from any device, anytime</p>
+                  </div>
+                </li>
+              </ul>
               <div 
-                className="relative" 
+                className="relative mt-8" 
                 onMouseEnter={() => setIsHoveringDemo(true)}
                 onMouseLeave={() => setIsHoveringDemo(false)}
               >
@@ -214,7 +251,7 @@ const Landing = () => {
       {/* Testimonials */}
       <section className="bg-scamguard-subtle py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-16">What Caregivers Are Saying</h2>
+          <h2 className="text-3xl font-bold text-center mb-16">Stories from Caregivers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-lg shadow-sm">
               <div className="flex items-center mb-4">
@@ -227,8 +264,9 @@ const Landing = () => {
                 </div>
               </div>
               <p className="text-gray-600">
-                "ScamGuard has given me peace of mind knowing I can intervene before my father falls victim to online scams. 
-                Last month it caught a phishing attempt that looked legitimate even to me."
+                "ScamGuard caught a sophisticated phishing attempt targeting my dad's banking info. 
+                The best part? I didn't have to check in with him constantly - the system only alerted me when 
+                it really mattered."
               </p>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -242,8 +280,9 @@ const Landing = () => {
                 </div>
               </div>
               <p className="text-gray-600">
-                "The setup was incredibly simple, and my mother doesn't even notice it's there. But it's caught several 
-                suspicious sites and pop-ups that could have led to financial fraud."
+                "My mother just presses the red key whenever she's unsure. It's so simple, she mastered it 
+                immediately. The AI has flagged several suspicious pop-ups that could have led to 
+                financial fraud."
               </p>
             </div>
             <div className="bg-white p-8 rounded-lg shadow-sm">
@@ -257,8 +296,8 @@ const Landing = () => {
                 </div>
               </div>
               <p className="text-gray-600">
-                "As someone who cares for multiple seniors, ScamGuard has been a game-changer. I can monitor everyone's 
-                activity from one dashboard and quickly address any concerns."
+                "As someone who cares for multiple seniors, ScamGuard has eliminated the constant worry. 
+                I only get alerts when there's actual risk, not false alarms or routine browsing."
               </p>
             </div>
           </div>
@@ -267,14 +306,14 @@ const Landing = () => {
       
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-3xl font-bold mb-6">Ready to Protect Your Loved Ones?</h2>
+        <h2 className="text-3xl font-bold mb-6">Peace of Mind Starts With a Single Key</h2>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
           Get started with ScamGuard today and provide the digital safety net your family deserves.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link to="/login">
             <Button size="lg" className="w-full sm:w-auto">
-              Create Account
+              Try ScamGuard Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>

@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Logo from './Logo';
 
 interface HeaderProps {
   userName: string;
@@ -29,9 +30,7 @@ export function Header({ userName, parentOptions, unreviewedCount, onParentChang
       <div className="flex items-center justify-between max-w-[1920px] mx-auto">
         <div className="flex items-center">
           <div className="flex items-center mr-8">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg mr-3">
-              S
-            </div>
+            <Logo size="md" className="mr-3" />
             <h1 className="text-xl font-semibold tracking-tight hidden sm:block">
               ScamGuard
             </h1>

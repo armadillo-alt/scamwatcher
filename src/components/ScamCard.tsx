@@ -1,4 +1,3 @@
-
 import { AlertTriangle, Check, Clock, Eye, ExternalLink, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -157,7 +156,7 @@ export function ScamCard({
               {isGoogleDriveUrl && (
                 <Button 
                   variant="outline" 
-                  size="xs"
+                  size="sm"
                   className="absolute bottom-2 right-2 bg-white/80 text-xs"
                   onClick={(e) => {
                     e.stopPropagation();

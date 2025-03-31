@@ -16,7 +16,7 @@ export function Logo({ className = "", size = "md" }: LogoProps) {
   return (
     <div className={`flex items-center ${className}`}>
       <img 
-        src="/scamguard-logo.png" 
+        src="scamguard-logo.png" 
         alt="ScamGuard Logo" 
         className={`${sizeClasses[size]} w-auto object-contain`}
       />

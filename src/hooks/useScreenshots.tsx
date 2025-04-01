@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import Papa from "papaparse";
-import { Screenshot, FilterOptions } from "../types";
+import { Screenshot, FilterOptions, RiskLevel } from "../types";
 import { toast } from "sonner";
 import { analyzeScreenshot } from "@/utils/ocrUtils";
 
@@ -125,7 +125,7 @@ export function useScreenshots() {
       const mockData = MOCK_SCREENSHOTS.map(screenshot => ({
         ...screenshot,
         ocr_text: "", // Clear mock OCR text as we'll analyze it
-        risk_level: "low" // Reset risk level for analysis
+        risk_level: "low" as RiskLevel // Reset risk level for analysis and assert the type
       }));
       setScreenshots(mockData);
       processOcrForScreenshots(mockData);
@@ -159,7 +159,7 @@ export function useScreenshots() {
               
               const analysis = await analyzeScreenshot(screenshot.screenshot_url);
               
-              // Update screenshot with OCR results and risk level
+              // Update screenshot with OCR results and risk level - ensure proper typing
               updatedScreenshots[batchIndex] = {
                 ...updatedScreenshots[batchIndex],
                 ocr_text: analysis.ocr_text,

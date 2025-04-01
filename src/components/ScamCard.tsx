@@ -1,4 +1,5 @@
-import { AlertTriangle, Check, Clock, Eye, ExternalLink, MessageCircle } from "lucide-react";
+
+import { AlertTriangle, Check, Clock, Eye, ExternalLink, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +176,7 @@ export function ScamCard({
           >
             {screenshot.risk_level === 'high' && <AlertTriangle className="h-3 w-3 mr-1" />}
             {screenshot.risk_level.charAt(0).toUpperCase() + screenshot.risk_level.slice(1)} Risk
+            {screenshot.scam_score !== undefined && ` (${screenshot.scam_score})`}
           </Badge>
         </div>
         
@@ -195,6 +197,24 @@ export function ScamCard({
             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
               {screenshot.ocr_text}
             </p>
+          )}
+          
+          {screenshot.matched_patterns && screenshot.matched_patterns.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-medium text-scamguard-medium">Detected patterns:</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {screenshot.matched_patterns.slice(0, 3).map((pattern, index) => (
+                  <Badge key={index} variant="outline" className="text-[10px]">
+                    {pattern.length > 20 ? pattern.substring(0, 20) + '...' : pattern}
+                  </Badge>
+                ))}
+                {screenshot.matched_patterns.length > 3 && (
+                  <Badge variant="outline" className="text-[10px]">
+                    +{screenshot.matched_patterns.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            </div>
           )}
         </div>
         

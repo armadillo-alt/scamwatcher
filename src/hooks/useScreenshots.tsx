@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import Papa from "papaparse";
 import { Screenshot, FilterOptions } from "../types";
 import { toast } from "sonner";
+import { analyzeScreenshot } from "@/utils/ocrUtils";
 
 // Use your published Google Sheets CSV link.
 const SHEETS_CSV_URL =
@@ -82,6 +84,7 @@ export function useScreenshots() {
   const [error, setError] = useState<string | null>(null);
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
   const [useMockData, setUseMockData] = useState(false);
+  const [processingOcr, setProcessingOcr] = useState(false);
 
   useEffect(() => {
     loadScreenshots();
@@ -104,27 +107,82 @@ export function useScreenshots() {
       const rows = parsed.data as any[];
 
       // IMPORTANT: Ensure the keys below match the column headers in your CSV.
-      const realData: Screenshot[] = rows.map((row) => ({
+      const initialData: Screenshot[] = rows.map((row) => ({
         id: row["id"] || "",
         screenshot_url: row["screenshot_url"] || "",
         timestamp: row["timestamp"] || new Date().toISOString(),
         parent_id: row["parent_id"] || "Unknown-PC",
-        ocr_text: row["ocr_text"] || "",
-        risk_level: row["risk_level"] || "low",
+        ocr_text: "", // We'll fill this with real OCR data
+        risk_level: "low", // Default, will be updated with analysis
         status: row["status"] || "unreviewed",
       }));
 
-      setScreenshots(realData);
+      setScreenshots(initialData);
+      processOcrForScreenshots(initialData);
       setUseMockData(false);
     } catch (err) {
       console.error("Failed to load screenshots from Google Sheets:", err);
-      setScreenshots(MOCK_SCREENSHOTS);
+      const mockData = MOCK_SCREENSHOTS.map(screenshot => ({
+        ...screenshot,
+        ocr_text: "", // Clear mock OCR text as we'll analyze it
+        risk_level: "low" // Reset risk level for analysis
+      }));
+      setScreenshots(mockData);
+      processOcrForScreenshots(mockData);
       setUseMockData(true);
       setError("Using mock data – failed to fetch from Google Sheets");
       toast.info("Using mock data – Google Sheets not available");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Process OCR and scam detection for screenshots
+  const processOcrForScreenshots = async (screenshotsToProcess: Screenshot[]) => {
+    setProcessingOcr(true);
+    toast.info("Processing OCR and scam detection...");
+
+    // Process screenshots in batches to avoid overwhelming the browser
+    const batchSize = 3;
+    const updatedScreenshots = [...screenshotsToProcess];
+
+    for (let i = 0; i < updatedScreenshots.length; i += batchSize) {
+      const batch = updatedScreenshots.slice(i, i + batchSize);
+      
+      // Process batch in parallel
+      await Promise.all(
+        batch.map(async (screenshot, index) => {
+          if (screenshot.screenshot_url) {
+            try {
+              const batchIndex = i + index;
+              console.log(`Processing OCR for screenshot ${batchIndex + 1}/${updatedScreenshots.length}`);
+              
+              const analysis = await analyzeScreenshot(screenshot.screenshot_url);
+              
+              // Update screenshot with OCR results and risk level
+              updatedScreenshots[batchIndex] = {
+                ...updatedScreenshots[batchIndex],
+                ocr_text: analysis.ocr_text,
+                risk_level: analysis.risk_level,
+                scam_score: analysis.scam_score,
+                matched_patterns: analysis.matched_patterns
+              };
+              
+              // Update state incrementally to show progress
+              setScreenshots([...updatedScreenshots]);
+            } catch (error) {
+              console.error(`Error processing OCR for screenshot ${screenshot.id}:`, error);
+            }
+          }
+        })
+      );
+      
+      // Short delay between batches to prevent browser from freezing
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    setProcessingOcr(false);
+    toast.success("OCR and scam detection completed!");
   };
 
   const refreshScreenshots = async () => {
@@ -224,7 +282,8 @@ export function useScreenshots() {
     metrics,
     filters,
     setFilters,
-    loading,
+    loading: loading || processingOcr,
+    processingOcr,
     error,
     selectedScreenshot,
     setSelectedScreenshot,

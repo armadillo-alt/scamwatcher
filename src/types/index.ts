@@ -13,6 +13,8 @@ export interface Screenshot {
   risk_level: RiskLevel;
   status: ScreenshotStatus;
   notes?: string;
+  scam_score?: number;
+  matched_patterns?: string[];
 }
 
 export interface FilterOptions {

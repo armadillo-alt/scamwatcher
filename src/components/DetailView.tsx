@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   AlertTriangle, 
@@ -6,10 +5,11 @@ import {
   Check, 
   Clock, 
   Computer, 
-  Download,
   ExternalLink,
   MessageSquare, 
   SendHorizontal, 
+  ShieldCheck, 
+  Target,
   X 
 } from "lucide-react";
 import {
@@ -52,38 +52,31 @@ export function DetailView({
   const [imageError, setImageError] = useState<boolean>(false);
   const [isGoogleDriveUrl, setIsGoogleDriveUrl] = useState<boolean>(false);
 
-  // Update notes when screenshot changes
   useEffect(() => {
     if (screenshot) {
       setNotes(screenshot.notes || "");
       setImageError(false);
       
-      // Check if it's a Google Drive URL
       const isGDriveUrl = screenshot.screenshot_url && screenshot.screenshot_url.includes('drive.google.com');
       setIsGoogleDriveUrl(isGDriveUrl);
       
-      // Store original URL for "View Original" button
       setOriginalUrl(screenshot.screenshot_url || "");
       
       if (isGDriveUrl) {
-        // Extract file ID from Google Drive URL patterns
         let fileId = "";
         
-        // Pattern for "drive.google.com/file/d/ID/view" format
         if (screenshot.screenshot_url.includes('/file/d/')) {
           const match = screenshot.screenshot_url.match(/\/file\/d\/([^/]+)/);
           if (match && match[1]) {
             fileId = match[1];
           }
         } 
-        // Pattern for "drive.google.com/uc?id=ID" format
         else if (screenshot.screenshot_url.includes('id=')) {
           const match = screenshot.screenshot_url.match(/id=([^&]+)/);
           if (match && match[1]) {
             fileId = match[1];
           }
         }
-        // Pattern for "drive.google.com/open?id=ID" format
         else if (screenshot.screenshot_url.includes('open?id=')) {
           const match = screenshot.screenshot_url.match(/open\?id=([^&]+)/);
           if (match && match[1]) {
@@ -92,15 +85,12 @@ export function DetailView({
         }
         
         if (fileId) {
-          // For the detail view, we'll try to use a medium-sized version
           setDisplayUrl(`https://drive.google.com/uc?id=${fileId}&export=view`);
         } else {
-          // If we couldn't extract the ID, set empty URL
           setDisplayUrl("");
           setImageError(true);
         }
       } else {
-        // Not a Google Drive URL, use directly
         setDisplayUrl(screenshot.screenshot_url);
       }
     }
@@ -156,6 +146,7 @@ export function DetailView({
             >
               {screenshot.risk_level === 'high' && <AlertTriangle className="h-3 w-3 mr-1" />}
               {screenshot.risk_level.charAt(0).toUpperCase() + screenshot.risk_level.slice(1)} Risk
+              {screenshot.scam_score !== undefined && ` (Score: ${screenshot.scam_score})`}
             </Badge>
           </div>
           <DialogDescription>
@@ -227,6 +218,29 @@ export function DetailView({
             </div>
           </div>
           
+          {screenshot.matched_patterns && screenshot.matched_patterns.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium mb-2">Detected Scam Patterns:</h4>
+              <div className="bg-scamguard-high/5 border border-scamguard-high/20 p-3 rounded-md">
+                <div className="flex items-center mb-2">
+                  <Target className="h-4 w-4 text-scamguard-high mr-2" />
+                  <span className="text-sm font-medium">Scam Score: {screenshot.scam_score}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {screenshot.matched_patterns.map((pattern, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="outline" 
+                      className="text-xs bg-scamguard-high/10 border-scamguard-high/20"
+                    >
+                      {pattern}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
           {screenshot.ocr_text && (
             <div>
               <h4 className="text-sm font-medium mb-2">Extracted Text:</h4>
@@ -282,7 +296,7 @@ export function DetailView({
               onClick={() => onMarkSafe(screenshot.id)}
               className="flex items-center"
             >
-              <Check className="h-4 w-4 mr-2" />
+              <ShieldCheck className="h-4 w-4 mr-2" />
               Mark as Safe
             </Button>
             <Button 

@@ -110,25 +110,44 @@ export function useScreenshots() {
       const initialData: Screenshot[] = rows.map((row) => ({
         id: row["id"] || "",
         screenshot_url: row["screenshot_url"] || "",
+        // Preserve original timestamp if it exists, otherwise use current time
         timestamp: row["timestamp"] || new Date().toISOString(),
         parent_id: row["parent_id"] || "Unknown-PC",
-        ocr_text: "", // We'll fill this with real OCR data
-        risk_level: "low", // Default, will be updated with analysis
+        ocr_text: row["ocr_text"] || "", // Preserve existing OCR text if present
+        risk_level: (row["risk_level"] as RiskLevel) || "low", // Preserve risk level if present
         status: row["status"] || "unreviewed",
+        scam_score: row["scam_score"] ? Number(row["scam_score"]) : undefined,
+        matched_patterns: row["matched_patterns"] ? JSON.parse(row["matched_patterns"]) : undefined
       }));
 
       setScreenshots(initialData);
-      processOcrForScreenshots(initialData);
+      
+      // Only process OCR for screenshots without OCR text
+      const screenshotsToProcess = initialData.filter(s => !s.ocr_text);
+      if (screenshotsToProcess.length > 0) {
+        processOcrForScreenshots(screenshotsToProcess);
+      } else {
+        setProcessingOcr(false);
+        toast.success("All screenshots already have OCR data");
+      }
+      
       setUseMockData(false);
     } catch (err) {
       console.error("Failed to load screenshots from Google Sheets:", err);
       const mockData = MOCK_SCREENSHOTS.map(screenshot => ({
         ...screenshot,
-        ocr_text: "", // Clear mock OCR text as we'll analyze it
-        risk_level: "low" as RiskLevel // Reset risk level for analysis and assert the type
+        // Preserve original OCR text and risk level in mock data
+        ocr_text: screenshot.ocr_text || "",
+        risk_level: screenshot.risk_level || "low" as RiskLevel
       }));
       setScreenshots(mockData);
-      processOcrForScreenshots(mockData);
+      
+      // Only process OCR for screenshots without OCR text
+      const screenshotsToProcess = mockData.filter(s => !s.ocr_text);
+      if (screenshotsToProcess.length > 0) {
+        processOcrForScreenshots(screenshotsToProcess);
+      }
+      
       setUseMockData(true);
       setError("Using mock data – failed to fetch from Google Sheets");
       toast.info("Using mock data – Google Sheets not available");
@@ -139,31 +158,36 @@ export function useScreenshots() {
 
   // Process OCR and scam detection for screenshots
   const processOcrForScreenshots = async (screenshotsToProcess: Screenshot[]) => {
+    if (screenshotsToProcess.length === 0) return;
+    
     setProcessingOcr(true);
-    toast.info("Processing OCR and scam detection...");
+    toast.info(`Processing OCR for ${screenshotsToProcess.length} new screenshots...`);
 
     // Process screenshots in batches to avoid overwhelming the browser
-    const batchSize = 3;
-    const updatedScreenshots = [...screenshotsToProcess];
+    const batchSize = 2;
+    const updatedScreenshots = [...screenshots];
 
-    for (let i = 0; i < updatedScreenshots.length; i += batchSize) {
-      const batch = updatedScreenshots.slice(i, i + batchSize);
+    for (let i = 0; i < screenshotsToProcess.length; i += batchSize) {
+      const batch = screenshotsToProcess.slice(i, i + batchSize);
       
       // Process batch in parallel
       await Promise.all(
-        batch.map(async (screenshot, index) => {
+        batch.map(async (screenshot) => {
           if (screenshot.screenshot_url) {
             try {
-              const batchIndex = i + index;
-              console.log(`Processing OCR for screenshot ${batchIndex + 1}/${updatedScreenshots.length}`);
+              console.log(`Processing OCR for screenshot ${screenshot.id}`);
+              
+              // Find the index of this screenshot in the full array
+              const screenshotIndex = updatedScreenshots.findIndex(s => s.id === screenshot.id);
+              if (screenshotIndex === -1) return;
               
               const analysis = await analyzeScreenshot(screenshot.screenshot_url);
               
               // Update screenshot with OCR results and risk level - ensure proper typing
-              updatedScreenshots[batchIndex] = {
-                ...updatedScreenshots[batchIndex],
-                ocr_text: analysis.ocr_text,
-                risk_level: analysis.risk_level,
+              updatedScreenshots[screenshotIndex] = {
+                ...updatedScreenshots[screenshotIndex],
+                ocr_text: analysis.ocr_text || "No text detected",
+                risk_level: analysis.risk_level as RiskLevel,
                 scam_score: analysis.scam_score,
                 matched_patterns: analysis.matched_patterns
               };
@@ -172,13 +196,22 @@ export function useScreenshots() {
               setScreenshots([...updatedScreenshots]);
             } catch (error) {
               console.error(`Error processing OCR for screenshot ${screenshot.id}:`, error);
+              // Don't let errors stop the whole process, but mark this one
+              const screenshotIndex = updatedScreenshots.findIndex(s => s.id === screenshot.id);
+              if (screenshotIndex !== -1) {
+                updatedScreenshots[screenshotIndex] = {
+                  ...updatedScreenshots[screenshotIndex],
+                  ocr_text: "Error extracting text from image",
+                };
+                setScreenshots([...updatedScreenshots]);
+              }
             }
           }
         })
       );
       
       // Short delay between batches to prevent browser from freezing
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
 
     setProcessingOcr(false);

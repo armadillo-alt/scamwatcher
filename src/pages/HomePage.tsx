@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TechnicalExplanation from "@/components/TechnicalExplanation";
 
 const HomePage = () => {
   const [currency, setCurrency] = useState<"USD" | "ZAR">("USD");
@@ -271,6 +272,9 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Technical Explanation Section */}
+      <TechnicalExplanation />
 
       {/* Testimonials Section */}
       <section className="container mx-auto px-6 py-16">

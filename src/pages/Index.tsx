@@ -1,7 +1,8 @@
 
 import { useState } from "react";
-import { AlertTriangle, Clock, Eye, LogOut, PieChart, RefreshCw, ShieldCheck, InfoIcon } from "lucide-react";
+import { AlertTriangle, Clock, Eye, Home, LogOut, PieChart, RefreshCw, ShieldCheck, InfoIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 import { useScreenshots } from "@/hooks/useScreenshots";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
@@ -17,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Index = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const {
     screenshots,
@@ -69,6 +71,11 @@ const Index = () => {
     toast.success("Logged out successfully");
   };
 
+  const handleGoHome = () => {
+    navigate('/');
+    toast.success("Navigated to home page");
+  };
+
   return (
     <div className="min-h-screen bg-scamguard-background flex flex-col">
       <Header
@@ -95,6 +102,14 @@ const Index = () => {
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh Screenshots
+            </Button>
+            <Button
+              onClick={handleGoHome}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              Home
             </Button>
             <Button
               onClick={handleLogout}

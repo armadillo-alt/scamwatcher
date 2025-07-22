@@ -112,7 +112,7 @@ const HomePage = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">How ScamGuard Works</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Simple for seniors, powerful for caregivers. Our AI-powered solution detects and alerts you to real threats.
+              Simple for seniors, powerful for concerned children. Our AI-powered solution detects and alerts you to real threats.
             </p>
           </div>
           
@@ -137,8 +137,8 @@ const HomePage = () => {
             
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">4</div>
-              <h3 className="font-bold text-xl mb-2">Caregiver Alert</h3>
-              <p className="text-gray-600">Caregivers receive alerts only when intervention is needed.</p>
+               <h3 className="font-bold text-xl mb-2">Child Alert</h3>
+               <p className="text-gray-600">Parents get instant feedback while concerned children receive alerts only when intervention is needed.</p>
             </div>
           </div>
         </div>
@@ -228,7 +228,7 @@ const HomePage = () => {
                       ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
                       : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
                     <span className={!plan.features.caregiverAlerts ? "text-gray-400" : ""}>
-                      Caregiver Alerts
+                      Child Alerts & Parent Notifications
                     </span>
                   </li>
                   <li className="flex items-start">
@@ -287,7 +287,7 @@ const HomePage = () => {
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold">JD</div>
               <div className="ml-4">
                 <h4 className="font-bold">John D.</h4>
-                <p className="text-gray-600 text-sm">Caregiver</p>
+                <p className="text-gray-600 text-sm">Concerned Son</p>
               </div>
             </div>
             <p className="text-gray-600">"ScamGuard caught a tech support scam targeting my father before he could give away his credit card details. Worth every penny!"</p>

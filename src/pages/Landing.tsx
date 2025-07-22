@@ -84,7 +84,7 @@ const Landing = () => {
             <div className="bg-white p-8 rounded-lg shadow-sm animate-scale-in">
               <ShieldCheck className="h-10 w-10 text-scamguard-low mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">Peace of Mind</h3>
-              <p className="text-gray-600">For both caregivers and their loved ones</p>
+              <p className="text-gray-600">For both concerned children and their elderly loved ones</p>
             </div>
           </div>
         </div>
@@ -125,10 +125,10 @@ const Landing = () => {
             <div className="bg-scamguard-subtle p-6 rounded-full mb-6">
               <MessagesSquare className="h-10 w-10 text-scamguard-low" />
             </div>
-            <h3 className="text-xl font-bold mb-4">4. Smart Alerts</h3>
-            <p className="text-gray-600">
-              Caregivers are only notified when real risks are detected, with no false alarms.
-            </p>
+              <h3 className="text-xl font-bold mb-4">4. Smart Alerts</h3>
+              <p className="text-gray-600">
+                Concerned children are only notified when real risks are detected. Parents receive immediate red/green notifications showing if the content is safe or risky.
+              </p>
           </div>
         </div>
       </section>
@@ -251,7 +251,7 @@ const Landing = () => {
       {/* Testimonials */}
       <section className="bg-scamguard-subtle py-20">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-16">Stories from Caregivers</h2>
+          <h2 className="text-3xl font-bold text-center mb-16">Stories from Concerned Children</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-lg shadow-sm">
               <div className="flex items-center mb-4">

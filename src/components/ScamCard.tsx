@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Screenshot } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScamCardProps {
   screenshot: Screenshot;
@@ -25,6 +26,7 @@ export function ScamCard({
   const [imageUrl, setImageUrl] = useState<string>("");
   const [imageError, setImageError] = useState<boolean>(false);
   const [isGoogleDriveUrl, setIsGoogleDriveUrl] = useState<boolean>(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Reset error state when screenshot changes
@@ -113,6 +115,13 @@ export function ScamCard({
   ) => {
     e.stopPropagation();
     action(screenshot.id);
+    
+    // Show toast notification when button is clicked
+    toast({
+      title: "Parent Notification Sent",
+      description: `Your parent has been notified with a ${action === onMarkSafe ? "green (safe)" : "red (warning)"} taskbar alert.`,
+      variant: action === onMarkSafe ? "default" : "destructive",
+    });
   };
 
   const handleImageError = () => {

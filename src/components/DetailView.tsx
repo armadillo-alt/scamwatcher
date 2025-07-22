@@ -251,7 +251,7 @@ export function DetailView({
           )}
           
           <div>
-            <h4 className="text-sm font-medium mb-2">Caregiver Notes:</h4>
+            <h4 className="text-sm font-medium mb-2">Loved Ones Notes:</h4>
             <Textarea
               placeholder="Add your notes about this screenshot..."
               value={notes}

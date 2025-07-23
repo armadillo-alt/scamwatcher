@@ -1,379 +1,367 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TechnicalExplanation from "@/components/TechnicalExplanation";
-const HomePage = () => {
-  const [currency, setCurrency] = useState<"USD" | "ZAR">("USD");
-  const exchangeRate = 19; // Fixed rate for ZAR conversion
 
-  const pricingPlans = {
-    free: {
-      name: "Free",
-      priceUSD: 0,
-      priceZAR: 0,
-      bestFor: "Try it out with limited features (max 3 scans/mo)",
-      features: {
-        screenshots: "3 per month",
-        aiDetection: true,
-        caregiverAlerts: false,
-        dashboardAccess: false,
-        multiDeviceSupport: false,
-        prioritySupport: false,
-        dataRetention: "7 days"
-      }
-    },
-    monthly: {
-      name: "Monthly",
-      priceUSD: 9,
-      priceZAR: 9 * exchangeRate,
-      bestFor: currency === "USD" ? "Ongoing peace of mind for your parent" : "Affordable safety for South African families",
-      features: {
-        screenshots: "Unlimited",
-        aiDetection: true,
-        caregiverAlerts: true,
-        dashboardAccess: true,
-        multiDeviceSupport: true,
-        prioritySupport: true,
-        dataRetention: "12 months"
-      }
-    },
-    yearly: {
-      name: "Yearly",
-      priceUSD: 50,
-      priceZAR: 950,
-      // Fixed price from spec
-      bestFor: "Best value — save 45% annually",
-      features: {
-        screenshots: "Unlimited",
-        aiDetection: true,
-        caregiverAlerts: true,
-        dashboardAccess: true,
-        multiDeviceSupport: true,
-        prioritySupport: true,
-        dataRetention: "12 months"
-      }
-    }
-  };
-  return <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <img src="/scamguard-logo.png" alt="ScamGuard Logo" className="h-10" />
-          <span className="font-bold text-2xl text-gray-800">ScamGuard</span>
-        </div>
-        <div className="space-x-4">
-          <Link to="/login">
-            <Button variant="outline" className="font-medium">
-              Log In
+import React from "react";
+import { Shield, Users, Bell, ArrowRight, Star, CheckCircle, Mail, Phone, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { TechnicalExplanation } from "@/components/TechnicalExplanation";
+
+const HomePage = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-scamguard-background to-scamguard-subtle">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-scamguard-border">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Shield className="h-8 w-8 text-scamguard-medium" />
+              <span className="text-2xl font-bold text-scamguard-text">ScamGuard</span>
+            </div>
+            <nav className="hidden md:flex space-x-8">
+              <a href="#features" className="text-scamguard-text hover:text-scamguard-medium transition-colors">Features</a>
+              <a href="#how-it-works" className="text-scamguard-text hover:text-scamguard-medium transition-colors">How It Works</a>
+              <a href="#pricing" className="text-scamguard-text hover:text-scamguard-medium transition-colors">Pricing</a>
+              <a href="#contact" className="text-scamguard-text hover:text-scamguard-medium transition-colors">Contact</a>
+            </nav>
+            <Button 
+              onClick={() => navigate('/login')}
+              className="bg-scamguard-medium hover:bg-scamguard-low text-white"
+            >
+              Sign In
             </Button>
-          </Link>
-          <Link to="/login">
-            <Button className="font-medium">
-              Get Started
-            </Button>
-          </Link>
+          </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-6 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <Badge className="mb-4 px-3 py-1 bg-indigo-100 text-indigo-800 border-none">AI-Powered Protection</Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
-            One button. One scan. One less thing to worry about.
+      <section className="py-20">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6 text-scamguard-text">
+            Protect Your Loved Ones from Online Scams
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8">
-            ScamGuard uses AI to detect online scams in real time — protecting your parents and only alerting you when it really matters.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+            ScamGuard is an intelligent monitoring system that helps families protect elderly relatives 
+            from online scams by providing real-time alerts and expert analysis of suspicious content.
           </p>
-          <div className="flex flex-col md:flex-row justify-center gap-4">
-            <Link to="/login">
-              <Button size="lg" className="w-full md:w-auto font-medium">
-                Try ScamGuard Free <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="outline" className="w-full md:w-auto font-medium">
-                See How It Works
-              </Button>
-            </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              className="bg-scamguard-medium hover:bg-scamguard-low text-white px-8 py-3"
+              onClick={() => navigate('/signup')}
+            >
+              Get Started Free
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-scamguard-medium text-scamguard-medium hover:bg-scamguard-subtle px-8 py-3"
+            >
+              Watch Demo
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="bg-gray-50 py-16">
+      {/* Features Section */}
+      <section id="features" className="py-16 bg-white">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">How ScamGuard Works</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Simple for seniors, powerful for concerned loved ones. Our AI-powered solution detects and alerts you to real threats.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">1</div>
-              <h3 className="font-bold text-xl mb-2">Press the Key</h3>
-              <p className="text-gray-600">Elder presses the red key (custom red print screen button) when they see something suspicious online.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">2</div>
-              <h3 className="font-bold text-xl mb-2">AI Analysis</h3>
-              <p className="text-gray-600">Our AI scans the screenshot using OCR and keyword detection. The elder user is notified immediately with a safe or unsafe notification</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">3</div>
-              <h3 className="font-bold text-xl mb-2">Risk Detection</h3>
-              <p className="text-gray-600">A risk level is assigned: Safe, Suspicious, or Scam, with appropriate actions.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">4</div>
-               <h3 className="font-bold text-xl mb-2">Loved Ones Alert</h3>
-               <p className="text-gray-600">Elder users get instant feedback while concerned loved ones receive alerts only when intervention is needed.</p>
-            </div>
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">Why Choose ScamGuard?</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <Shield className="h-12 w-12 text-scamguard-medium mb-4" />
+                <h3 className="text-xl font-bold mb-3 text-scamguard-text">Real-Time Protection</h3>
+                <p className="text-gray-600">
+                  Advanced AI monitors web browsing in real-time, instantly identifying potential scams 
+                  and phishing attempts before they can cause harm.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <Users className="h-12 w-12 text-scamguard-low mb-4" />
+                <h3 className="text-xl font-bold mb-3 text-scamguard-text">Family Dashboard</h3>
+                <p className="text-gray-600">
+                  Loved ones can monitor activity, review alerts, and receive notifications 
+                  about potential threats targeting their elderly family members.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <Bell className="h-12 w-12 text-scamguard-high mb-4" />
+                <h3 className="text-xl font-bold mb-3 text-scamguard-text">Instant Alerts</h3>
+                <p className="text-gray-600">
+                  Get immediate notifications when suspicious activity is detected, 
+                  allowing for quick intervention and protection.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* Setup Section */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Simple 3-Step Setup</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Getting started with ScamGuard is easy. Protect your loved ones in minutes.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="border border-gray-200 p-6 rounded-lg">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">1</div>
-            <h3 className="font-bold text-xl mb-2">Place the Dot</h3>
-            <p className="text-gray-600">Place the ScamGuard dot on your loved one's keyboard for easy access.</p>
-          </div>
-          
-          <div className="border border-gray-200 p-6 rounded-lg">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">2</div>
-            <h3 className="font-bold text-xl mb-2">Install Software</h3>
-            <p className="text-gray-600">Install our simple software with one click. No tech expertise needed.</p>
-          </div>
-          
-          <div className="border border-gray-200 p-6 rounded-lg">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">3</div>
-            <h3 className="font-bold text-xl mb-2">Monitor Remotely</h3>
-            <p className="text-gray-600">Access the dashboard from anywhere to monitor and respond to alerts.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="bg-gray-50 py-16">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Choose the plan that gives your family peace of mind</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Start free, upgrade anytime. ScamGuard works silently in the background — but protects like a hawk.
-            </p>
-            
-            {/* Currency Toggle */}
-            <div className="inline-flex items-center bg-gray-100 rounded-full p-1 mt-6">
-              <button onClick={() => setCurrency("USD")} className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "USD" ? "bg-white shadow-sm" : "text-gray-600"}`}>
-                USD
-              </button>
-              <button onClick={() => setCurrency("ZAR")} className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "ZAR" ? "bg-white shadow-sm" : "text-gray-600"}`}>
-                ZAR
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {Object.values(pricingPlans).map(plan => <div key={plan.name} className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 flex flex-col">
-                <h3 className="font-bold text-2xl mb-2">{plan.name}</h3>
-                <div className="text-4xl font-bold mb-1">
-                  {currency === "USD" ? `$${plan.priceUSD}` : `R${plan.priceZAR}`}
-                  <span className="text-base font-normal text-gray-500 ml-1">
-                    {plan.name !== "Free" && (currency === "USD" ? "/month" : "/month")}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-6">{plan.bestFor}</p>
-                
-                <ul className="space-y-3 mb-8 flex-grow">
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span>Screenshots: {plan.features.screenshots}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span>AI Scam Detection</span>
-                  </li>
-                  <li className="flex items-start">
-                    {plan.features.caregiverAlerts ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
-                    <span className={!plan.features.caregiverAlerts ? "text-gray-400" : ""}>
-                      Child Alerts & Parent Notifications
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    {plan.features.dashboardAccess ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
-                    <span className={!plan.features.dashboardAccess ? "text-gray-400" : ""}>
-                      Dashboard Access
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    {plan.features.multiDeviceSupport ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
-                    <span className={!plan.features.multiDeviceSupport ? "text-gray-400" : ""}>
-                      Multi-device Support
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    {plan.features.prioritySupport ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
-                    <span className={!plan.features.prioritySupport ? "text-gray-400" : ""}>
-                      Priority Support
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                    <span>Data Retention: {plan.features.dataRetention}</span>
-                  </li>
-                </ul>
-                
-                <Link to="/login">
-                  <Button className="w-full" variant={plan.name === "Free" ? "outline" : "default"}>
-                    {plan.name === "Free" ? "Try Free" : "Get Started"}
-                  </Button>
-                </Link>
-              </div>)}
-          </div>
-        </div>
-      </section>
-
-      {/* Technical Explanation Section */}
+      {/* Technical Explanation */}
       <TechnicalExplanation />
 
-      {/* Testimonials Section */}
-      <section className="container mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            ScamGuard is helping families protect their loved ones across the world.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold">JD</div>
-              <div className="ml-4">
-                <h4 className="font-bold">John D.</h4>
-                <p className="text-gray-600 text-sm">Concerned Son</p>
-              </div>
+      {/* Stats Section */}
+      <section className="py-16 bg-scamguard-subtle">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">Trusted by Families Worldwide</h2>
+          <div className="grid md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold mb-1 text-scamguard-medium">5,000+</div>
+              <div className="text-gray-600">Families Protected</div>
             </div>
-            <p className="text-gray-600">"ScamGuard caught a tech support scam targeting my father before he could give away his credit card details. Worth every penny!"</p>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold">SM</div>
-              <div className="ml-4">
-                <h4 className="font-bold">Sarah M.</h4>
-                <p className="text-gray-600 text-sm">Senior Care Facility Director</p>
-              </div>
+            <div>
+              <div className="text-4xl font-bold mb-1 text-scamguard-medium">50,000+</div>
+              <div className="text-gray-600">Scams Blocked</div>
             </div>
-            <p className="text-gray-600">"We've implemented ScamGuard across our facility. The AI filtering is impressive - we only get alerts when there's a genuine concern."</p>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold">LW</div>
-              <div className="ml-4">
-                <h4 className="font-bold">Lisa W.</h4>
-                <p className="text-gray-600 text-sm">Daughter</p>
-              </div>
+            <div>
+              <div className="text-4xl font-bold mb-1 text-scamguard-medium">99.9%</div>
+              <div className="text-gray-600">Uptime</div>
             </div>
-            <p className="text-gray-600">"My mom loves the simplicity - she just hits the button when she's unsure. I love that I don't have to constantly monitor her computer use."</p>
+            <div>
+              <div className="text-4xl font-bold mb-1 text-scamguard-medium">24/7</div>
+              <div className="text-gray-600">Monitoring</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-indigo-900 text-white py-16">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-3xl mx-auto">
-            <Shield className="h-16 w-16 mx-auto mb-6 text-indigo-300" />
-            <h2 className="text-3xl font-bold mb-4">Ready to protect your loved ones?</h2>
-            <p className="text-xl mb-8 text-indigo-200">
-              Get started with ScamGuard today and give your family the gift of online safety.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/login">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-indigo-900 w-full sm:w-auto">
-                  Try Free
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button size="lg" className="bg-white text-indigo-900 hover:bg-indigo-100 w-full sm:w-auto">
-                  Get Started
-                </Button>
-              </Link>
+      {/* How It Works */}
+      <section id="how-it-works" className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">How ScamGuard Works</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-scamguard-subtle rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-scamguard-medium">1</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-scamguard-text">Easy Installation</h3>
+              <p className="text-gray-600">
+                Install our lightweight browser extension and desktop app on your loved one's computer. 
+                Setup takes just minutes with our guided process.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="bg-scamguard-subtle rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-scamguard-medium">2</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-scamguard-text">Intelligent Monitoring</h3>
+              <p className="text-gray-600">
+                Our AI continuously analyzes web content, emails, and social media for scam indicators 
+                without interfering with normal browsing.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="bg-scamguard-subtle rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-scamguard-medium">3</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-scamguard-text">Family Alerts</h3>
+              <p className="text-gray-600">
+                When threats are detected, both the user and their family members receive 
+                immediate alerts with recommended actions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 bg-scamguard-subtle">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">What Families Say</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  "ScamGuard gave me peace of mind knowing my mother is protected online. 
+                  It caught several phishing attempts that could have been devastating."
+                </p>
+                <div className="font-medium text-scamguard-text">Sarah Johnson</div>
+                <div className="text-sm text-gray-500">Daughter of ScamGuard user</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  "The family dashboard is incredible. I can see what my dad encounters online 
+                  and help him stay safe without being intrusive."
+                </p>
+                <div className="font-medium text-scamguard-text">Michael Chen</div>
+                <div className="text-sm text-gray-500">Son of ScamGuard user</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">Simple, Transparent Pricing</h2>
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-2 text-scamguard-text">Basic</h3>
+                <div className="text-3xl font-bold mb-4 text-scamguard-medium">$9.99<span className="text-sm font-normal">/month</span></div>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Real-time scam detection</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Email alerts</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Basic dashboard</span>
+                  </li>
+                </ul>
+                <Button className="w-full" variant="outline">Get Started</Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-scamguard-medium">
+              <CardContent className="p-6">
+                <div className="bg-scamguard-medium text-white text-sm px-3 py-1 rounded-full inline-block mb-4">
+                  Most Popular
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-scamguard-text">Family</h3>
+                <div className="text-3xl font-bold mb-4 text-scamguard-medium">$19.99<span className="text-sm font-normal">/month</span></div>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Everything in Basic</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Family dashboard</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>SMS alerts</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+                <Button className="w-full bg-scamguard-medium hover:bg-scamguard-low">Get Started</Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-scamguard-border">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-2 text-scamguard-text">Premium</h3>
+                <div className="text-3xl font-bold mb-4 text-scamguard-medium">$39.99<span className="text-sm font-normal">/month</span></div>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Everything in Family</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Advanced AI protection</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>24/7 phone support</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-scamguard-low mr-2" />
+                    <span>Custom alerts</span>
+                  </li>
+                </ul>
+                <Button className="w-full" variant="outline">Get Started</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="py-16 bg-scamguard-subtle">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold mb-12 text-center text-scamguard-text">Get in Touch</h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-scamguard-text">Contact Information</h3>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 text-scamguard-medium mr-3" />
+                  <span>support@scamguard.com</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="h-5 w-5 text-scamguard-medium mr-3" />
+                  <span>1-800-SCAM-GUARD</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 text-scamguard-medium mr-3" />
+                  <span>123 Security Blvd, San Francisco, CA 94105</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-scamguard-text">Ready to Get Started?</h3>
+              <p className="text-gray-600 mb-6">
+                Protect your loved ones today with our 30-day free trial. No credit card required.
+              </p>
+              <Button 
+                size="lg" 
+                className="bg-scamguard-medium hover:bg-scamguard-low text-white"
+                onClick={() => navigate('/signup')}
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-100 py-12">
+      <footer className="bg-scamguard-text text-white py-8">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <div className="flex items-center space-x-4">
-                <img src="/scamguard-logo.png" alt="ScamGuard Logo" className="h-8" />
-                <span className="font-bold text-xl text-gray-800">ScamGuard</span>
-              </div>
-              <p className="text-gray-600 mt-2">Protecting seniors from online scams.</p>
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <Shield className="h-6 w-6" />
+              <span className="text-xl font-bold">ScamGuard</span>
             </div>
-            
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8">
-              <div>
-                <h4 className="font-bold mb-2">Product</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Features</a></li>
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Pricing</a></li>
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">FAQ</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-bold mb-2">Company</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">About</a></li>
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Contact</a></li>
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Privacy Policy</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h4 className="font-bold mb-2">Support</h4>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Help Center</a></li>
-                  <li><Link to="/login" className="text-gray-600 hover:text-gray-900">Login</Link></li>
-                  <li><a href="#" className="text-gray-600 hover:text-gray-900">Contact Support</a></li>
-                </ul>
-              </div>
+            <div className="flex space-x-6 text-sm">
+              <a href="#" className="hover:text-scamguard-low transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-scamguard-low transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-scamguard-low transition-colors">Support</a>
             </div>
           </div>
-          
-          <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-600 text-sm">© {new Date().getFullYear()} ScamGuard. All rights reserved.</p>
-            <div className="flex space-x-4 mt-4 md:mt-0">
-              <a href="#" className="text-gray-600 hover:text-gray-900">Terms</a>
-              <a href="#" className="text-gray-600 hover:text-gray-900">Privacy</a>
-              <a href="#" className="text-gray-600 hover:text-gray-900">Cookies</a>
-            </div>
+          <div className="border-t border-gray-700 mt-6 pt-6 text-center text-sm text-gray-400">
+            © 2024 ScamGuard. All rights reserved.
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default HomePage;

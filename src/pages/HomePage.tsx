@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, Shield } from "lucide-react";
@@ -6,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TechnicalExplanation from "@/components/TechnicalExplanation";
-
 const HomePage = () => {
   const [currency, setCurrency] = useState<"USD" | "ZAR">("USD");
-
   const exchangeRate = 19; // Fixed rate for ZAR conversion
-  
+
   const pricingPlans = {
     free: {
       name: "Free",
@@ -46,7 +43,8 @@ const HomePage = () => {
     yearly: {
       name: "Yearly",
       priceUSD: 50,
-      priceZAR: 950, // Fixed price from spec
+      priceZAR: 950,
+      // Fixed price from spec
       bestFor: "Best value — save 45% annually",
       features: {
         screenshots: "Unlimited",
@@ -59,9 +57,7 @@ const HomePage = () => {
       }
     }
   };
-  
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">
@@ -112,22 +108,20 @@ const HomePage = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">How ScamGuard Works</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Simple for seniors, powerful for concerned children. Our AI-powered solution detects and alerts you to real threats.
-            </p>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Simple for seniors, powerful for concerned loved ones. Our AI-powered solution detects and alerts you to real threats.</p>
           </div>
           
           <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">1</div>
               <h3 className="font-bold text-xl mb-2">Press the Key</h3>
-              <p className="text-gray-600">Elder presses the red key when they see something suspicious online.</p>
+              <p className="text-gray-600">Elder presses the red key (custom red print screen button) when they see something suspicious online.</p>
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">2</div>
               <h3 className="font-bold text-xl mb-2">AI Analysis</h3>
-              <p className="text-gray-600">Our AI scans the screenshot using OCR and keyword detection.</p>
+              <p className="text-gray-600">Our AI scans the screenshot using OCR and keyword detection. The elder user is notified immediately with a safe or unsafe notification</p>
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -138,8 +132,8 @@ const HomePage = () => {
             
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-800 font-bold mb-4">4</div>
-               <h3 className="font-bold text-xl mb-2">Child Alert</h3>
-               <p className="text-gray-600">Parents get instant feedback while concerned children receive alerts only when intervention is needed.</p>
+               <h3 className="font-bold text-xl mb-2">Loved Ones Alert</h3>
+               <p className="text-gray-600">Elder users get instant feedback while concerned loved ones receive alerts only when intervention is needed.</p>
             </div>
           </div>
         </div>
@@ -186,29 +180,20 @@ const HomePage = () => {
             
             {/* Currency Toggle */}
             <div className="inline-flex items-center bg-gray-100 rounded-full p-1 mt-6">
-              <button 
-                onClick={() => setCurrency("USD")} 
-                className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "USD" ? "bg-white shadow-sm" : "text-gray-600"}`}
-              >
+              <button onClick={() => setCurrency("USD")} className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "USD" ? "bg-white shadow-sm" : "text-gray-600"}`}>
                 USD
               </button>
-              <button 
-                onClick={() => setCurrency("ZAR")} 
-                className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "ZAR" ? "bg-white shadow-sm" : "text-gray-600"}`}
-              >
+              <button onClick={() => setCurrency("ZAR")} className={`px-4 py-2 rounded-full text-sm font-medium ${currency === "ZAR" ? "bg-white shadow-sm" : "text-gray-600"}`}>
                 ZAR
               </button>
             </div>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {Object.values(pricingPlans).map((plan) => (
-              <div key={plan.name} className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 flex flex-col">
+            {Object.values(pricingPlans).map(plan => <div key={plan.name} className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 flex flex-col">
                 <h3 className="font-bold text-2xl mb-2">{plan.name}</h3>
                 <div className="text-4xl font-bold mb-1">
-                  {currency === "USD" 
-                    ? `$${plan.priceUSD}` 
-                    : `R${plan.priceZAR}`}
+                  {currency === "USD" ? `$${plan.priceUSD}` : `R${plan.priceZAR}`}
                   <span className="text-base font-normal text-gray-500 ml-1">
                     {plan.name !== "Free" && (currency === "USD" ? "/month" : "/month")}
                   </span>
@@ -225,33 +210,25 @@ const HomePage = () => {
                     <span>AI Scam Detection</span>
                   </li>
                   <li className="flex items-start">
-                    {plan.features.caregiverAlerts 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
+                    {plan.features.caregiverAlerts ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
                     <span className={!plan.features.caregiverAlerts ? "text-gray-400" : ""}>
                       Child Alerts & Parent Notifications
                     </span>
                   </li>
                   <li className="flex items-start">
-                    {plan.features.dashboardAccess 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
+                    {plan.features.dashboardAccess ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
                     <span className={!plan.features.dashboardAccess ? "text-gray-400" : ""}>
                       Dashboard Access
                     </span>
                   </li>
                   <li className="flex items-start">
-                    {plan.features.multiDeviceSupport 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
+                    {plan.features.multiDeviceSupport ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
                     <span className={!plan.features.multiDeviceSupport ? "text-gray-400" : ""}>
                       Multi-device Support
                     </span>
                   </li>
                   <li className="flex items-start">
-                    {plan.features.prioritySupport 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
+                    {plan.features.prioritySupport ? <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" /> : <span className="h-5 w-5 text-gray-300 mr-2 mt-0.5">✗</span>}
                     <span className={!plan.features.prioritySupport ? "text-gray-400" : ""}>
                       Priority Support
                     </span>
@@ -267,8 +244,7 @@ const HomePage = () => {
                     {plan.name === "Free" ? "Try Free" : "Get Started"}
                   </Button>
                 </Link>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -398,8 +374,6 @@ const HomePage = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default HomePage;

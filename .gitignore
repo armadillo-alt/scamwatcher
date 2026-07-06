@@ -1,24 +1,30 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
+# Dependencies and build output
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editors / OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+
+# Local session tooling
+.claude/
+
+# Never commit environment or credential files.
+# (Google OAuth credentials were once leaked from this repo — keep these rules.)
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+*.pem
+venv/
+__pycache__/

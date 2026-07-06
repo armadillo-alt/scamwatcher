@@ -1,59 +1,56 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import HomePage from "./pages/HomePage";
+import { Link, NavLink, Outlet, Route, Routes } from "react-router-dom";
+import { KeycapMark } from "./components/Logo";
+import { ToastHost } from "./components/Toast";
+import Dashboard from "./pages/Dashboard";
+import Landing from "./pages/Landing";
+import Learn from "./pages/Learn";
 import NotFound from "./pages/NotFound";
-import { useState } from "react";
+import SettingsPage from "./pages/SettingsPage";
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
-};
+const navClass = ({ isActive }: { isActive: boolean }) =>
+  `nav-link${isActive ? " active" : ""}`;
 
-const AppRoutes = () => {
+function AppShell() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Index />
-        </ProtectedRoute>
-      } />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <header className="app-header">
+        <div className="container app-header-inner">
+          <Link to="/" className="brand">
+            <KeycapMark /> ScamGuard
+          </Link>
+          <nav className="app-nav" aria-label="Main">
+            <NavLink to="/app" end className={navClass}>
+              Review
+            </NavLink>
+            <NavLink to="/app/learn" className={navClass}>
+              Learn
+            </NavLink>
+            <NavLink to="/app/settings" className={navClass}>
+              Settings
+            </NavLink>
+          </nav>
+        </div>
+      </header>
+      <main className="container page">
+        <Outlet />
+      </main>
+    </>
   );
-};
+}
 
-const App = () => {
-  // Create a new QueryClient instance inside the component
-  const [queryClient] = useState(() => new QueryClient());
-  
+export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-right" closeButton />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/app" element={<AppShell />}>
+          <Route index element={<Dashboard />} />
+          <Route path="learn" element={<Learn />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <ToastHost />
+    </>
   );
-};
-
-export default App;
+}

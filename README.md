@@ -1,69 +1,69 @@
-# Welcome to your Lovable project
+# ScamGuard
 
-## Project info
+Your parent presses one red key when something on their screen feels wrong. The screenshot
+lands here — with a plain-language answer to *“is this a scam?”*
 
-**URL**: https://lovable.dev/projects/c4c35ec0-14e5-4a83-b49b-a2d96f326f9f
+> One button. One scan. One less thing to worry about.
 
-## How can I edit this code?
+This is the caregiver-facing web app: a calm triage dashboard for reviewing those
+screenshots, an explainable scam-risk analysis that runs entirely in the browser, and a
+plain-language guide to the scams that actually circulate in South Africa (SARS refunds,
+SASSA grants, bank impersonation, “Hi Mom” WhatsApp messages…).
 
-There are several ways of editing your application.
+**Design and architecture are documented in [DESIGN.md](DESIGN.md).
+If you are picking this project up, start with [HANDOFF.md](HANDOFF.md).**
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/c4c35ec0-14e5-4a83-b49b-a2d96f326f9f) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Run it
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev        # → http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+That's all — the app starts on bundled demo data. No accounts, no keys, no backend.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Script          | What it does                          |
+| --------------- | ------------------------------------- |
+| `npm run dev`   | Dev server on port 8080               |
+| `npm run build` | Typecheck + production build to `dist/` |
+| `npm run test`  | Unit tests for the scam-analysis engine |
+| `npm run lint`  | ESLint                                |
 
-**Use GitHub Codespaces**
+## How it fits together
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+Google Sheet (published CSV, optional) ──┐
+Bundled demo data ───────────────────────┤
+                                         ▼
+                          src/lib/sources.ts   (fetch + normalize rows)
+                          src/lib/ocr.ts       (Tesseract.js, lazy, cached — only for rows without text)
+                          src/lib/engine/      (explainable risk analysis, pure + unit-tested)
+                          src/lib/store.ts     (reviews & settings in localStorage)
+                                         ▼
+                          src/hooks/useScreenshots.ts  (one orchestrator)
+                                         ▼
+                          pages/ + components/          (presentation only)
+```
 
-## What technologies are used for this project?
+- **`/`** — the story (landing page)
+- **`/app`** — review dashboard: status sentence, filters, cards, detail panel,
+  keyboard triage (<kbd>J</kbd>/<kbd>K</kbd> move, <kbd>Enter</kbd> open,
+  <kbd>S</kbd> safe, <kbd>X</kbd> scam)
+- **`/app/learn`** — the scam guide
+- **`/app/settings`** — data source, OCR toggle, export/import reviews
 
-This project is built with .
+## Connecting real data
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Point Settings → *A Google Sheet* at a sheet published to the web as CSV
+(File → Share → Publish to web → CSV). Columns understood:
+`id`, `screenshot_url`, `timestamp` (ISO), `parent_id` (device label), `ocr_text` (optional).
+The link is public by design — it involves **no credentials**, so never put private
+information in that sheet. Reviews and notes never leave the caregiver's browser.
 
-## How can I deploy this project?
+## Security posture
 
-Simply open [Lovable](https://lovable.dev/projects/c4c35ec0-14e5-4a83-b49b-a2d96f326f9f) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Frontend-only; **no secrets exist anywhere in this codebase** and none may be added.
+- Google OAuth credentials were leaked in this repo's early history; the history has been
+  rewritten to purge them. The credentials themselves must be treated as compromised and
+  revoked — see [HANDOFF.md](HANDOFF.md) → *Security*.
+- `.gitignore` blocks `credentials.json` / `token.json` / `.env` patterns permanently.

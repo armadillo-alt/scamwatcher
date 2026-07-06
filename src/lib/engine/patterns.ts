@@ -94,9 +94,12 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
       },
       {
         phrases: [
-          "sars",
+          "sars efiling",
+          "from sars",
+          "sars refund",
+          "sars audit",
+          "sars letter",
           "south african revenue service",
-          "efiling",
           "sassa",
           "srd grant",
         ],
@@ -117,20 +120,38 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         ],
         weight: 12,
         explanation:
-          "A surprise refund, or a grant that suddenly needs reapplying through a link, is bait — real refunds and grants never work through links.",
+          "A surprise refund is bait — SARS pays refunds into the bank account it already has on file, and SASSA never asks anyone to reapply through a link.",
       },
+    ],
+  },
+  {
+    id: "delivery-fee",
+    label: "Fake parcel and delivery fees",
+    patterns: [
       {
         phrases: [
           "your parcel is on hold",
           "package could not be delivered",
-          "pay the customs fee",
-          "customs fee of r",
           "your package is waiting",
           "delivery attempt failed",
+          "parcel has been suspended",
         ],
-        weight: 9,
+        weight: 10,
         explanation:
-          "Fake parcel messages invent a small customs or delivery fee so your parent types card details into a payment page.",
+          "A parcel your parent never ordered, suddenly stuck in transit, is one of the most common scam messages in South Africa — the parcel does not exist.",
+      },
+      {
+        phrases: [
+          "pay the customs fee",
+          "customs fee of r",
+          "unpaid customs fee",
+          "delivery fee of r",
+          "pay the delivery fee",
+          "release your parcel",
+        ],
+        weight: 12,
+        explanation:
+          "Real couriers and the Post Office charge customs at collection, not through a pay-now link in a message.",
       },
     ],
   },
@@ -178,6 +199,22 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         explanation:
           "Scammers collect ID numbers together with banking details so they can pose as your parent and open or empty accounts.",
       },
+      {
+        phrases: [
+          "enter the otp",
+          "enter your otp",
+          "otp to verify",
+          "submit the otp",
+          "send the otp",
+          "send us the otp",
+          "one time pin",
+          "one-time pin",
+          "share your otp",
+        ],
+        weight: 20,
+        explanation:
+          "A one-time PIN is the key to the account — the bank sends it so only your parent can approve a payment, and nobody honest will ever ask them to hand it over.",
+      },
     ],
   },
   {
@@ -186,10 +223,14 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
     patterns: [
       {
         phrases: [
-          "gift card",
+          "with a gift card",
+          "buy a gift card",
+          "in gift cards",
+          "gift card or voucher",
           "itunes card",
           "google play card",
           "1voucher",
+          "ott voucher",
           "voucher pin",
           "buy a voucher",
           "send the voucher code",
@@ -198,6 +239,19 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         weight: 16,
         explanation:
           "No real bank, company or government office asks to be paid in gift cards or vouchers — only scammers do, because vouchers cannot be traced.",
+      },
+      {
+        phrases: [
+          "deposit to secure",
+          "pay a deposit to secure",
+          "deposit before delivery",
+          "courier will deliver it",
+          "courier will collect",
+          "secure the item with a deposit",
+        ],
+        weight: 12,
+        explanation:
+          "On marketplace sites, a stranger asking for a deposit before your parent has seen the item usually keeps both the deposit and the item.",
       },
       {
         phrases: [
@@ -295,9 +349,10 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         phrases: [
           "your computer has been infected",
           "your computer is infected",
-          "viruses have been detected",
-          "virus has been detected",
-          "spyware detected",
+          "viruses have been detected on your",
+          "virus has been detected on your",
+          "viruses detected on your computer",
+          "spyware detected on your",
           "microsoft security alert",
           "your pc is at risk",
         ],
@@ -343,6 +398,18 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         weight: 20,
         explanation:
           "Anyone who asks to connect to your parent's computer from far away is trying to take control of it — no real company does this uninvited.",
+      },
+      {
+        phrases: [
+          "app version is outdated",
+          "app will stop working",
+          "update your banking app immediately",
+          "update your app immediately",
+          "app has expired",
+        ],
+        weight: 12,
+        explanation:
+          "Banks update their apps quietly through the app store — a message warning that the app will stop working is pushing your parent toward a fake download.",
       },
     ],
   },
@@ -522,6 +589,18 @@ export const PATTERN_LIBRARY: PatternCategory[] = [
         weight: 16,
         explanation:
           "Emails claiming to have embarrassing recordings are bluffs sent to thousands of people, hoping fear makes a few of them pay.",
+      },
+      {
+        phrases: [
+          "meter will be disconnected",
+          "electricity will be disconnected",
+          "new token system",
+          "update your meter",
+          "meter has been blocked",
+        ],
+        weight: 12,
+        explanation:
+          "Fake municipal messages threaten to cut the lights so people pay into the wrong account — real changes arrive on the bill, not through an SMS link.",
       },
     ],
   },

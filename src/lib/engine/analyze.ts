@@ -18,6 +18,7 @@ const SUMMARY_FRAGMENTS: Record<string, string> = {
   credentials: "asks for login or banking details",
   "payment-red-flags": "asks for payment in an unusual way",
   "prize-bait": "promises money or a prize",
+  "delivery-fee": "invents a parcel fee",
   "tech-support": "claims the computer has a problem",
   "family-impersonation": "pretends to be a family member",
   investment: "promises guaranteed investment returns",
@@ -42,8 +43,38 @@ function summarize(matches: SignalMatch[]): string {
 }
 
 /**
+ * Negation guard: banks' own safety notices say "we will NEVER ask you to …" followed by
+ * the very phrases scammers use. A match is suppressed when a negation marker appears
+ * shortly before it in the same sentence, so genuine fraud-awareness text stays quiet.
+ */
+const NEGATION_WINDOW = 90;
+const NEGATION_RE = /(?:\bnever\b|\bwill not\b|\bwon'?t\b|\bdo(?:es)? not\b|\bdon'?t\b|\bno\b)/i;
+
+function isNegated(text: string, matchIndex: number): boolean {
+  const windowStart = Math.max(0, matchIndex - NEGATION_WINDOW);
+  let scope = text.slice(windowStart, matchIndex);
+  const sentenceBreak = Math.max(
+    scope.lastIndexOf("."),
+    scope.lastIndexOf("!"),
+    scope.lastIndexOf("?"),
+  );
+  if (sentenceBreak >= 0) scope = scope.slice(sentenceBreak + 1);
+  return NEGATION_RE.test(scope);
+}
+
+/** First occurrence of the phrase that is NOT negated, or -1. */
+function findAffirmative(text: string, phrase: string): number {
+  let idx = text.indexOf(phrase);
+  while (idx !== -1 && isNegated(text, idx)) {
+    idx = text.indexOf(phrase, idx + phrase.length);
+  }
+  return idx;
+}
+
+/**
  * Pure, explainable analysis of OCR text against the pattern library.
- * A PatternDef contributes at most once, using the first phrase that matches.
+ * A PatternDef contributes at most once, using the first phrase that matches
+ * affirmatively (negated mentions — "we will never ask you to…" — don't count).
  */
 export function analyzeText(raw: string): Analysis {
   const text = raw.toLowerCase();
@@ -51,7 +82,7 @@ export function analyzeText(raw: string): Analysis {
 
   for (const category of PATTERN_LIBRARY) {
     for (const def of category.patterns) {
-      const phrase = def.phrases.find((p) => text.includes(p));
+      const phrase = def.phrases.find((p) => findAffirmative(text, p) !== -1);
       if (phrase) {
         matches.push({
           categoryId: category.id,

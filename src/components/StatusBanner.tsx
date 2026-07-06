@@ -55,7 +55,7 @@ export function StatusBanner({ shots }: { shots: Shots }) {
 
   return (
     <div className="status-banner rise">
-      <div>
+      <div aria-live="polite">
         <p className={`status-line${calm ? " calm" : ""}`}>{sentence}</p>
         <p className="status-sub">
           {subParts.join(" · ")}

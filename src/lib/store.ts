@@ -80,6 +80,21 @@ export function exportReviews(): string {
   return JSON.stringify(payload, null, 2);
 }
 
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Accepts only well-formed review entries; anything else is silently dropped. */
+function sanitizeReview(value: unknown): Review | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  const verdict = v.verdict === "safe" || v.verdict === "scam" ? v.verdict : undefined;
+  const note = typeof v.note === "string" ? v.note : undefined;
+  const guidance = typeof v.guidance === "string" ? v.guidance : undefined;
+  if (verdict === undefined && note === undefined && guidance === undefined) return null;
+  const reviewedAt =
+    typeof v.reviewedAt === "string" ? v.reviewedAt : new Date().toISOString();
+  return { verdict, note, guidance, reviewedAt };
+}
+
 /** Returns how many reviews were imported. Throws with a readable message on bad input. */
 export function importReviews(json: string): number {
   let parsed: unknown;
@@ -92,9 +107,21 @@ export function importReviews(json: string): number {
   if (file.app !== "scamguard" || typeof file.reviews !== "object" || file.reviews === null) {
     throw new Error("That file was not exported by ScamGuard.");
   }
-  const merged = { ...loadReviews(), ...file.reviews };
+  const merged = loadReviews();
+  let count = 0;
+  for (const [id, raw] of Object.entries(file.reviews)) {
+    if (UNSAFE_KEYS.has(id)) continue;
+    const review = sanitizeReview(raw);
+    if (review) {
+      merged[id] = review;
+      count += 1;
+    }
+  }
+  if (count === 0) {
+    throw new Error("That file contained no usable reviews.");
+  }
   saveReviews(merged);
-  return Object.keys(file.reviews).length;
+  return count;
 }
 
 export function clearAllLocalData(): void {

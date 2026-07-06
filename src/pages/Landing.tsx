@@ -99,7 +99,7 @@ export default function Landing() {
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
             <KeycapMark size={20} /> ScamGuard
           </span>
-          <span>Built for families in South Africa. Everything stays on your device.</span>
+          <span>Built for families in South Africa. Your reviews stay in your browser.</span>
         </footer>
       </main>
     </>

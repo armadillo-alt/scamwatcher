@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, Route, Routes } from "react-router-dom";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { KeycapMark } from "./components/Logo";
 import { ToastHost } from "./components/Toast";
 import Dashboard from "./pages/Dashboard";
@@ -32,7 +33,9 @@ function AppShell() {
         </div>
       </header>
       <main className="container page">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </>
   );

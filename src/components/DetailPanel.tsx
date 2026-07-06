@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { formatWhen } from "../lib/format";
 import type { ScreenshotItem, Verdict } from "../lib/types";
 import { RiskChip, VerdictStamp } from "./Badges";
 
 /** Signals at or above this weight get the tinted "grave" treatment. */
 const GRAVE_WEIGHT = 16;
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
 export function DetailPanel({
   item,
@@ -22,10 +25,49 @@ export function DetailPanel({
   onSaveGuidance: (guidance: string) => void;
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  // Remember what had focus so we can restore it when the dialog closes.
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => {
+      returnFocusRef.current?.focus?.();
+    };
+  }, []);
 
   useEffect(() => {
     panelRef.current?.focus();
   }, [item.id]);
+
+  // Trap Tab within the panel; Escape closes. aria-modal promises the outside is inert,
+  // so focus must not be allowed to leave.
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab" || !panelRef.current) return;
+    const nodes = Array.from(
+      panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (nodes.length === 0) {
+      e.preventDefault();
+      panelRef.current.focus();
+      return;
+    }
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panelRef.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   return (
     <>
@@ -37,6 +79,7 @@ export function DetailPanel({
         aria-label={`Screenshot from ${item.device}`}
         ref={panelRef}
         tabIndex={-1}
+        onKeyDown={onKeyDown}
       >
         <header className="detail-head">
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -137,7 +180,7 @@ function DetailBody({
         {item.analysis === null ? (
           <p className="muted">
             The text on this screenshot hasn’t been read yet. If this doesn’t change, the image may
-            be unreadable — judge it by eye, or check the OCR setting in Settings.
+            be unreadable — judge it by eye, or check the text-reading setting in Settings.
           </p>
         ) : item.analysis.matches.length === 0 ? (
           <p className="muted">

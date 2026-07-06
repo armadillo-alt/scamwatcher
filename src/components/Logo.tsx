@@ -27,7 +27,7 @@ export function HeroKeycap() {
       role="img"
       aria-label="A keyboard key with a red dot on it"
     >
-      <rect x="22" y="34" width="156" height="152" rx="26" fill="#d9dbcd" />
+      <rect x="22" y="34" width="156" height="152" rx="26" fill="var(--keycap-base)" />
       <rect
         x="14"
         y="14"
@@ -39,7 +39,7 @@ export function HeroKeycap() {
         strokeWidth="5"
       />
       <circle cx="92" cy="90" r="30" fill="var(--key-red)" />
-      <circle cx="82" cy="79" r="9" fill="#c8564f" opacity="0.85" />
+      <circle cx="82" cy="79" r="9" fill="var(--key-red-hi)" opacity="0.85" />
     </svg>
   );
 }

@@ -25,7 +25,7 @@
   text-decoration: none;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.1875rem;
+  font-size: var(--fs-h4);
   letter-spacing: -0.01em;
 }
 
@@ -42,6 +42,8 @@
   color: var(--ink-2);
   padding: 6px 12px;
   border-radius: var(--r-ctl);
+  /* Transparent border in the base state so .active adding one causes no layout shift. */
+  border: 1px solid transparent;
   transition: color var(--t-fast), background var(--t-fast);
 }
 
@@ -53,7 +55,7 @@
 .nav-link.active {
   color: var(--ink);
   background: var(--card);
-  border: 1px solid var(--line);
+  border-color: var(--line);
 }
 
 .page {
@@ -85,7 +87,7 @@
 
 .btn-primary {
   background: var(--key-red);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -303,7 +305,7 @@
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: var(--s-5);
 }
 
@@ -376,6 +378,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.shot-thumb-fallback {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+  font-size: var(--fs-caption);
 }
 
 .shot-thumb .stamp {
@@ -717,7 +728,7 @@
 
 .step h3 {
   margin-bottom: var(--s-2);
-  font-size: 1.1875rem;
+  font-size: var(--fs-h4);
 }
 
 .step p {
@@ -741,7 +752,7 @@
 
 .guide-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: var(--s-5);
   margin-top: var(--s-6);
 }
@@ -757,7 +768,7 @@
 }
 
 .guide-card h3 {
-  font-size: 1.25rem;
+  font-size: var(--fs-h4);
 }
 
 .guide-aka {
@@ -824,7 +835,7 @@
 }
 
 .settings-card h3 {
-  font-size: 1.1875rem;
+  font-size: var(--fs-h4);
 }
 
 .settings-card .hint {
@@ -842,7 +853,7 @@
 
 .kbd {
   font-family: var(--font-ui);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 600;
   border: 1px solid var(--line);
   border-bottom-width: 2px;
@@ -914,11 +925,11 @@
 
   .nav-link {
     padding: 6px 8px;
-    font-size: 0.875rem;
+    font-size: var(--fs-caption);
   }
 
   .tab {
     padding: 5px 10px;
-    font-size: 0.875rem;
+    font-size: var(--fs-caption);
   }
 }

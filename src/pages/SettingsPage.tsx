@@ -122,11 +122,12 @@ export default function SettingsPage() {
               onChange={(e) => setSettings({ ...settings, ocrEnabled: e.target.checked })}
             />
             <span>
-              <b>Read screenshots in your browser (OCR)</b>
+              <b>Read the text on screenshots for me</b>
               <br />
               <span className="hint">
-                Only runs on screenshots that arrive without text. Downloads about 2&nbsp;MB the
-                first time, then it’s cached. Images are never uploaded anywhere.
+                Only runs on screenshots that arrive without text. The first time, it downloads a
+                free text-reading engine (about 2&nbsp;MB) from the internet, then works from your
+                browser’s cache. Your screenshots themselves are never uploaded anywhere.
               </span>
             </span>
           </label>
@@ -159,7 +160,11 @@ export default function SettingsPage() {
             type="file"
             accept="application/json"
             style={{ display: "none" }}
-            onChange={(e) => doImport(e.target.files?.[0])}
+            onChange={(e) => {
+              doImport(e.target.files?.[0]);
+              // Reset so re-picking the same file (e.g. after a failed import) fires onChange again.
+              e.target.value = "";
+            }}
           />
         </section>
       </div>

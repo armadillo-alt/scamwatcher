@@ -6,6 +6,10 @@ const at = (daysAgo: number, hm: string): string => {
   d.setDate(d.getDate() - daysAgo);
   const [h, m] = hm.split(":").map(Number);
   d.setHours(h, m, 0, 0);
+  // A "today" row scheduled later than the current clock would read as arriving in the
+  // future; pull it back to a few minutes ago so the demo always looks freshly captured.
+  const now = Date.now();
+  if (d.getTime() > now) d.setTime(now - 3 * 60_000);
   return d.toISOString();
 };
 

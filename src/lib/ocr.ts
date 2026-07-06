@@ -12,13 +12,20 @@ let workerPromise: Promise<Worker> | null = null;
 
 function getWorker(): Promise<Worker> {
   if (!workerPromise) {
-    workerPromise = import("tesseract.js").then((m) => m.createWorker("eng"));
+    // Reset on failure so a one-off network/init error doesn't poison OCR for the session.
+    workerPromise = import("tesseract.js")
+      .then((m) => m.createWorker("eng"))
+      .catch((e) => {
+        workerPromise = null;
+        throw e;
+      });
   }
   return workerPromise;
 }
 
 export function getCachedText(id: string): string | undefined {
-  return loadOcrCache()[id];
+  const cache = loadOcrCache();
+  return Object.hasOwn(cache, id) ? cache[id] : undefined;
 }
 
 export async function extractText(id: string, imageUrl: string): Promise<string> {

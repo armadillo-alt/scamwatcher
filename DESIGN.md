@@ -44,7 +44,11 @@ Defined once in `src/styles/tokens.css`. Never hard-code a color or size outside
 | `--key-red`  | `#9E2B25` | The Key. Brand accent AND high-risk/scam semantics — one red family, used sparingly: logo, primary CTA, danger chips, SCAM stamp. Hover `#7E211C`. |
 | `--red-tint` | `#F7E9E7` | Tinted ground for high-risk chips/panels. |
 | `--safe`     | `#3D6B35` | Safe / verified. Garden green. Tint `#EAF0E6`. |
-| `--warn`     | `#96690F` | Caution / medium risk. Ochre. Tint `#F5EEDD`. |
+| `--warn`     | `#835A0B` | Caution / medium risk. Deep ochre (≥4.5:1 on its tint). Tint `#F5EEDD`. |
+
+Two illustrative fills for the hero keycap also live as tokens (`--keycap-base`, `--key-red-hi`),
+and `--on-accent` (#fff) is the text colour on red/ink fills — so no raw colour sits outside
+`tokens.css`.
 
 Risk levels map: high → key-red family, medium → warn, low → safe-adjacent neutral
 (low risk is *rendered quiet*, not celebrated green — only an explicit Safe verdict earns green).
@@ -55,8 +59,9 @@ Risk levels map: high → key-red family, medium → warn, low → safe-adjacent
   Headlines, the status sentence, stamps, Learn-page titles. `text-wrap: balance` on headings.
 - **UI & body: Public Sans** (variable) — designed for civic digital services; honest and clear.
   Everything else. `font-variant-numeric: tabular-nums` wherever digits align.
-- Scale (rem): 0.8125 (caption) / 0.9375 (ui) / 1.0625 (body) / 1.375 (h3) / 1.75 (h2) /
-  2.375 (h1) / 3.25 (landing hero). Line-height 1.15 display, 1.55 body.
+- Scale (rem): 0.75 (micro/kbd) / 0.8125 (caption) / 0.9375 (ui) / 1.0625 (body) /
+  1.1875 (h4, sub-headings) / 1.375 (h3) / 1.75 (h2) / 2.375 (h1) / 3.25 (landing hero).
+  Line-height 1.15 display, 1.55 body.
 - Uppercase eyebrows/labels get `letter-spacing: 0.08em`, weight 600, size 0.8125rem.
 
 Fonts are self-hosted via `@fontsource-variable/bitter` and `@fontsource-variable/public-sans`
@@ -131,15 +136,24 @@ Key decisions and why:
   something a published-CSV source does without any secret. The frontend never holds
   credentials of any kind.
 - **Analysis is local and explainable.** `engine/patterns.ts` holds weighted, categorized
-  signals (urgency, impersonation, payment red flags, prize bait, tech-support, SA-specific:
-  SARS, SASSA, bank impersonation, WhatsApp family scams…). `engine/analyze.ts` is a pure
-  function returning score, level, and *named reasons with plain-language explanations* —
-  the caregiver learns while reviewing. Unit-tested with Vitest.
+  signals across 11 categories (urgency, impersonation, credentials incl. OTP harvesting,
+  payment red flags, prize bait, delivery/parcel fees, tech-support, family impersonation,
+  secrecy demands, investment, threats — SA-specific throughout: SARS, SASSA, bank
+  impersonation, WhatsApp family scams, courier-fee smishing, prepaid-electricity bait).
+  `engine/analyze.ts` is a pure function returning score, level, and *named reasons with
+  plain-language explanations* — the caregiver learns while reviewing. It is **negation-aware**:
+  a bank's own "we will never ask you to confirm your PIN" notice is suppressed, so genuine
+  fraud-awareness text stays quiet. Unit-tested with Vitest; the false-positive guard
+  (a legitimate bank login stays *low*) is the load-bearing test.
 - **Reviews persist.** The old app lost every review on refresh (state-only). Reviews, notes
   and guidance live in localStorage keyed by screenshot id, merged over source rows; the
   Sheet stays read-only. Export/import JSON for portability.
-- **OCR is opt-in and cached.** Tesseract.js loads lazily, only for rows without `ocr_text`,
-  results cached in localStorage. Batch OCR never blocks first paint.
+- **OCR is lazy, cached, and the one external fetch.** Tesseract.js loads via dynamic
+  import only for rows without `ocr_text`; results cache in localStorage. It downloads its
+  WASM + language data from a public CDN (jsdelivr) on first use — the **only** time the app
+  reaches the network for code. The default demo experience triggers no OCR and no external
+  requests at all. Screenshots themselves are never uploaded. (Roadmap: self-host the WASM to
+  make the app fully self-contained.)
 - **Dependencies are few on purpose**: react, react-dom, react-router-dom, papaparse,
   tesseract.js, two @fontsource packages. Dev: vite, typescript, eslint, vitest.
   Every removed dependency is one less thing to audit.

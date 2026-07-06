@@ -2,6 +2,16 @@ import Papa from "papaparse";
 import { DEMO_ROWS } from "./demoData";
 import type { ScreenshotRow, Settings } from "./types";
 
+/** djb2 over the row's content; falls back to position only for entirely empty rows. */
+function stableId(seed: string, index: number): string {
+  if (!seed) return `row-${index + 1}`;
+  let h = 5381;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) + h + seed.charCodeAt(i)) >>> 0;
+  }
+  return `r-${h.toString(36)}`;
+}
+
 /**
  * Data sources. "demo" is the bundled dataset; "sheet" is a Google Sheet published
  * to the web as CSV (a public link — no credentials anywhere in this app).
@@ -43,12 +53,18 @@ export async function fetchRows(settings: Settings): Promise<ScreenshotRow[]> {
         }
         return "";
       };
+      const screenshotUrl = pick("screenshot_url", "screenshotUrl", "image", "url");
+      const ocrText = pick("ocr_text", "ocrText");
       return {
-        id: pick("id") || `row-${i + 1}`,
-        screenshotUrl: pick("screenshot_url", "screenshotUrl", "image", "url"),
-        timestamp: pick("timestamp", "createdTime") || new Date().toISOString(),
+        // Reviews are keyed by id, so ids must survive sheet re-ordering: when the sheet
+        // has no id column, derive one from the row's own content, not its position.
+        id: pick("id") || stableId(screenshotUrl || ocrText, i),
+        screenshotUrl,
+        // Leave blank when the sheet has no time — the UI shows "Unknown time" rather than
+        // fabricating "now", which would wrongly inflate the this-week and last-arrival metrics.
+        timestamp: pick("timestamp", "createdTime"),
         device: pick("parent_id", "device", "parent") || "Unknown device",
-        ocrText: pick("ocr_text", "ocrText") || undefined,
+        ocrText: ocrText || undefined,
       };
     })
     .filter((r) => r.screenshotUrl !== "" || r.ocrText !== undefined);

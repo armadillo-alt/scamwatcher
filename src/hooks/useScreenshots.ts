@@ -60,34 +60,46 @@ export function useScreenshots() {
 
   useEffect(() => {
     if (!settings.ocrEnabled) return;
+    const attempted = ocrAttempted.current;
     const pending = rows.filter(
       (r) =>
         !r.ocrText &&
         r.screenshotUrl &&
         getCachedText(r.id) === undefined &&
-        !ocrAttempted.current.has(r.id),
+        !attempted.has(r.id),
     );
     if (pending.length === 0) return;
-    for (const r of pending) ocrAttempted.current.add(r.id);
+    for (const r of pending) attempted.add(r.id);
 
     let cancelled = false;
+    let started = 0;
     setOcrBusy((n) => n + pending.length);
     (async () => {
       for (const row of pending) {
         if (cancelled) return;
+        started += 1;
         try {
           const text = await extractText(row.id, row.screenshotUrl);
-          if (!cancelled) setOcrTexts((prev) => ({ ...prev, [row.id]: text }));
+          // The result is already cached by extractText, so surface it even if this effect
+          // was cancelled mid-flight — otherwise a refresh could strand a finished read.
+          setOcrTexts((prev) => ({ ...prev, [row.id]: text }));
         } catch {
           // Mark as attempted-but-unreadable; the UI shows "couldn't read this image".
-          if (!cancelled) setOcrTexts((prev) => ({ ...prev, [row.id]: "" }));
+          setOcrTexts((prev) => ({ ...prev, [row.id]: "" }));
         } finally {
-          if (!cancelled) setOcrBusy((n) => Math.max(0, n - 1));
+          setOcrBusy((n) => Math.max(0, n - 1));
         }
       }
     })();
     return () => {
       cancelled = true;
+      // Release the rows we never started so a re-run re-queues them, and settle their
+      // share of the busy counter — without this, refreshing mid-OCR wedges the queue.
+      const unstarted = pending.slice(started);
+      for (const r of unstarted) attempted.delete(r.id);
+      if (unstarted.length > 0) {
+        setOcrBusy((n) => Math.max(0, n - unstarted.length));
+      }
     };
   }, [rows, settings.ocrEnabled]);
 
@@ -95,12 +107,15 @@ export function useScreenshots() {
     () =>
       rows.map((r) => {
         // "" means OCR was attempted and found nothing — distinct from undefined (not read yet).
-        const text = r.ocrText ?? ocrTexts[r.id] ?? getCachedText(r.id);
+        // Object.hasOwn guards against sheet ids that collide with Object.prototype keys
+        // ("constructor", "toString", …), which would otherwise inject inherited values.
+        const own = Object.hasOwn(ocrTexts, r.id) ? ocrTexts[r.id] : undefined;
+        const text = r.ocrText ?? own ?? getCachedText(r.id);
         return {
           ...r,
           ocrText: text,
           analysis: text ? analyzeText(text) : null,
-          review: reviews[r.id] ?? null,
+          review: Object.hasOwn(reviews, r.id) ? reviews[r.id] : null,
         };
       }),
     [rows, ocrTexts, reviews],

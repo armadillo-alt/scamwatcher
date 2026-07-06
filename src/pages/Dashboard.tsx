@@ -78,6 +78,10 @@ export default function Dashboard() {
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+      // When a button or link has focus, let its own Enter/Space activation win — otherwise
+      // Tab+Enter on "Mark safe" or a filter tab would also fire a global shortcut.
+      const onControl = t.closest("button, a, [role='button']") !== null;
+
       const move = (delta: number) => {
         if (filtered.length === 0) return;
         const idx = filtered.findIndex((i) => i.id === selectedId);
@@ -86,7 +90,7 @@ export default function Dashboard() {
         setSelectedId(next.id);
         if (panelId) setPanelId(next.id);
         document
-          .querySelector(`[data-shot-id="${next.id}"]`)
+          .querySelector(`[data-shot-id="${CSS.escape(next.id)}"]`)
           ?.scrollIntoView({ block: "nearest" });
       };
 
@@ -106,16 +110,16 @@ export default function Dashboard() {
           move(-1);
           break;
         case "Enter":
-          if (selectedId && !panelId) setPanelId(selectedId);
+          if (!onControl && selectedId && !panelId) setPanelId(selectedId);
           break;
         case "Escape":
           setPanelId(null);
           break;
         case "s":
-          act("safe");
+          if (!onControl) act("safe");
           break;
         case "x":
-          act("scam");
+          if (!onControl) act("scam");
           break;
       }
     };
@@ -176,6 +180,7 @@ export default function Dashboard() {
               item={item}
               index={index}
               selected={item.id === selectedId}
+              ocrEnabled={shots.settings.ocrEnabled}
               onOpen={() => {
                 setSelectedId(item.id);
                 setPanelId(item.id);

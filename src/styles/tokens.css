@@ -11,14 +11,17 @@
 
   --key-red: #9e2b25;
   --key-red-hover: #7e211c;
+  --key-red-hi: #c8564f; /* lit face of the red dot on the hero keycap */
   --red-tint: #f7e9e7;
   --red-line: #e3c5c1;
+
+  --keycap-base: #d9dbcd; /* shadow face beneath the raised hero keycap */
 
   --safe: #3d6b35;
   --safe-tint: #eaf0e6;
   --safe-line: #c8d5c1;
 
-  --warn: #96690f;
+  --warn: #835a0b;
   --warn-tint: #f5eedd;
   --warn-line: #e2d3ae;
 
@@ -26,13 +29,17 @@
   --font-display: "Bitter Variable", "Bitter", Georgia, serif;
   --font-ui: "Public Sans Variable", "Public Sans", system-ui, -apple-system, sans-serif;
 
+  --fs-micro: 0.75rem;
   --fs-caption: 0.8125rem;
   --fs-ui: 0.9375rem;
   --fs-body: 1.0625rem;
+  --fs-h4: 1.1875rem;
   --fs-h3: 1.375rem;
   --fs-h2: 1.75rem;
   --fs-h1: 2.375rem;
   --fs-hero: clamp(2.5rem, 6vw, 3.25rem);
+
+  --on-accent: #ffffff; /* text/detail on key-red and ink fills */
 
   /* Space (px steps: 4 8 12 16 24 32 48 72) */
   --s-1: 4px;

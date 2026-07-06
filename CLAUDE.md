@@ -19,16 +19,20 @@ pressing a physical red key. Frontend-only Vite + React 18 + TypeScript (strict)
 ## Hard rules
 
 1. **No credentials, ever.** This repo once leaked Google OAuth secrets; the frontend must
-   remain credential-free. The only external data source is a *published* (public) Sheet CSV.
-   If a feature seems to need a secret, it needs a backend instead — put it on the roadmap.
+   remain credential-free. The only external *data* source is a *published* (public) Sheet
+   CSV; the only external *code* fetch is Tesseract.js pulling its OCR WASM from a public CDN
+   on first use (opt-in, off in the demo path). If a feature seems to need a secret, it needs
+   a backend instead — put it on the roadmap.
 2. **Styling is hand-written CSS** in `src/styles/` (tokens → base → components). No Tailwind,
    no CSS-in-JS, no component libraries. Raw values live in `tokens.css` only.
 3. **Copy follows DESIGN.md §6**: verdicts are “Safe”/“Scam”; explanations name the
    manipulation, not the technology; the reader is the adult child of an elderly parent.
 4. **The engine stays pure and explainable.** `analyzeText()` must stay a synchronous pure
    function whose matches each carry a caregiver-readable explanation. Tune weights in
-   `patterns.ts`; keep the false-positive guard tests passing (a legitimate bank login page
-   must stay below “medium”).
+   `patterns.ts`; keep the false-positive guard tests passing (a legitimate bank login page,
+   a bank's own “we never ask for your PIN” notice, and a news/health article must all stay
+   below “medium”). The matcher is negation-aware — don't revert it to bare `includes()`
+   without re-checking `analyze.test.ts`.
 5. **Reviews live in localStorage** (`scamguard.*.v1` keys). Bump the key suffix and write a
    migration if the shape changes.
 

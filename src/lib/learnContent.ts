@@ -36,7 +36,7 @@ export const SCAM_GUIDE: ScamGuideEntry[] = [
       "A refund or grant problem you were not expecting",
       "Asks for your ID number and banking details",
       "A deadline before the money is lost",
-      "The link does not end in gov.za",
+      "A web address that is misspelt or not the one you normally use",
       "A small fee must be paid to release the money",
     ],
     tellYourParent:

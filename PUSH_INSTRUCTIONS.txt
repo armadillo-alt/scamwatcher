@@ -22,5 +22,6 @@ STEP 2 — Publish the scrubbed history (from this folder):
 STEP 3 — Optional: ask GitHub Support to purge cached old commits/forks.
     https://support.github.com/  (force-push alone doesn't remove them server-side)
 
-Verify locally that the secrets are gone from history (should print 0):
-    git log --all -p | grep -c -E "GOCSPX-zewt|ya29.a0AeXRPp4|1//03cZfGm|AIzaSyDZ"
+Verify locally that the secrets are gone from history (should print 0). The old
+values began with "GOCSPX-", "ya29.", "1//", and "AIza" — scan for those prefixes:
+    git log --all -p | grep -c -E "GOCSPX-[A-Za-z0-9_]|ya29[.][A-Za-z0-9]|AIza[A-Za-z0-9]"

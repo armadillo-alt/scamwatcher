@@ -1,0 +1,26 @@
+ScamGuard — finishing the security scrub (Dante, do this)
+=========================================================
+
+The repo history has been rewritten locally to remove the leaked Google
+credentials, and all new work is committed. GitHub still holds the OLD history
+(with the secrets) until you push. Claude could not push for you: rewriting a
+public repo's history is irreversible, so it requires your own hands.
+
+STEP 1 — Revoke/rotate the leaked Google credentials FIRST (most important):
+  - https://myaccount.google.com/permissions  → remove the app for project
+    gen-lang-client-0854224633 (kills the leaked refresh token)
+  - https://console.cloud.google.com  → project gen-lang-client-0854224633 →
+    Credentials → delete the OAuth client and any API keys
+  (Do this even if you never push — the secrets were public for ~15 months.)
+
+STEP 2 — Publish the scrubbed history (from this folder):
+    git push --force origin main
+
+  If you'd rather keep GitHub's copy untouched and start clean, you can instead
+  create a fresh repo and push there.
+
+STEP 3 — Optional: ask GitHub Support to purge cached old commits/forks.
+    https://support.github.com/  (force-push alone doesn't remove them server-side)
+
+Verify locally that the secrets are gone from history (should print 0):
+    git log --all -p | grep -c -E "GOCSPX-zewt|ya29.a0AeXRPp4|1//03cZfGm|AIzaSyDZ"

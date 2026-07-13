@@ -1,0 +1,416 @@
+/**
+ * ScamGuard capture endpoint
+ * ==========================
+ *
+ * Google Apps Script (V8) web app that receives screenshots from the parent
+ * PC's red-key script and fans them out inside the caregiver's own Google
+ * account. No third-party services, no stored credentials:
+ *
+ *   Windows script --POST JSON--> this web app (runs as the caregiver)
+ *                                   |-- saves the image to a Drive folder
+ *                                   |-- OCRs it server-side (Drive API v2, optional)
+ *                                   |-- appends a row to the "Screenshots" sheet
+ *                                   |     (published as CSV; the dashboard reads it)
+ *                                   `-- emails the caregiver (Android pings)
+ *
+ * The web app URL is the only credential-like value in the whole system.
+ * It lives ONLY in the parent PC's config.ini. See SETUP.md for deployment.
+ *
+ * Request contract (POST body, JSON):
+ *   {
+ *     "key":        "same value as SECRET_KEY below (omit if SECRET_KEY is empty)",
+ *     "device":     "Mum's PC",             // optional, default "Parent PC"
+ *     "capturedAt": "2026-07-13T09:30:00Z", // optional; any parseable date; default now
+ *     "format":     "png",                  // or "jpg" / "jpeg"; anything else means png
+ *     "image":      "<base64 of the image bytes, no data: prefix>"
+ *   }
+ *
+ * Response (always JSON, always HTTP 200 - Apps Script web apps cannot set
+ * real status codes, so errors are signalled in the body):
+ *   { "ok": true, "id": "...", "screenshot_url": "..." }
+ *   { "ok": false, "error": "human-readable reason" }
+ *
+ * Sheet row contract (must match the dashboard - see src/lib/sources.ts and
+ * src/pages/SettingsPage.tsx in the ScamGuard repo):
+ *   id | screenshot_url | timestamp | parent_id | ocr_text
+ */
+
+// ============================== CONFIG =====================================
+// Everything below is optional; the defaults work as-is. After editing,
+// save and redeploy (Deploy -> Manage deployments -> Edit -> New version),
+// otherwise the live web app keeps running the old code.
+
+// Shared secret. If non-empty, every request must carry the identical value
+// in its "key" field or it is rejected. Strongly recommended: put a long
+// random string here and the same string in the parent PC's config.ini.
+const SECRET_KEY = "";
+
+// Where the notification email goes. Leave empty to send it to the Google
+// account that deployed this script (Session.getEffectiveUser()).
+const NOTIFY_EMAIL = "";
+
+// If set, the notification email ends with a link to the ScamGuard dashboard.
+const DASHBOARD_URL = "";
+
+// Name of the spreadsheet tab that receives one row per capture. The
+// published-CSV link the dashboard uses must point at this tab.
+const SHEET_NAME = "Screenshots";
+
+// Name of the Drive folder that stores the screenshot image files.
+const DRIVE_FOLDER_NAME = "ScamGuard Screenshots";
+
+// Reject images larger than this many bytes (measured after base64 decoding).
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+// Server-side OCR via the advanced Drive service (Drive API v2). If the
+// service is not enabled, or OCR fails for any reason, the capture still
+// succeeds and ocr_text is stored empty - the dashboard can OCR in the
+// browser instead (its opt-in Tesseract path).
+const OCR_ENABLED = true;
+const OCR_LANGUAGE = "en"; // ISO 639-1 language hint for the OCR engine
+const OCR_MAX_CHARS = 6000; // cap stored OCR text at this many characters
+
+// ============================ INTERNALS ====================================
+
+// Column order the dashboard expects. parent_id holds the device name.
+const SHEET_HEADER = ["id", "screenshot_url", "timestamp", "parent_id", "ocr_text"];
+
+// Script Properties keys (Project Settings -> Script properties).
+const FOLDER_ID_PROPERTY = "SCAMGUARD_FOLDER_ID"; // cached folder id; safe to delete
+const SPREADSHEET_ID_PROPERTY = "SPREADSHEET_ID"; // only read by standalone scripts
+
+// Timezone for the human-readable time in the email.
+// Keep in step with "timeZone" in appsscript.json.
+const EMAIL_TIMEZONE = "Africa/Johannesburg";
+
+// ============================ ENTRY POINTS ==================================
+
+/**
+ * Health check. Open the /exec URL in a browser and you should see
+ * {"ok":true,"service":"scamguard","time":"..."}.
+ */
+function doGet(e) {
+  return jsonOutput_({
+    ok: true,
+    service: "scamguard",
+    time: new Date().toISOString()
+  });
+}
+
+/**
+ * Receives one capture from the parent PC. Never throws a raw error at the
+ * caller: every outcome is a JSON body with ok:true or ok:false.
+ */
+function doPost(e) {
+  try {
+    const raw = e && e.postData && e.postData.contents ? e.postData.contents : "";
+    let payload;
+    try {
+      payload = JSON.parse(raw || "{}");
+    } catch (parseErr) {
+      return jsonOutput_({ ok: false, error: "The request body must be valid JSON." });
+    }
+    if (!payload || typeof payload !== "object") {
+      return jsonOutput_({ ok: false, error: "The request body must be a JSON object." });
+    }
+    return jsonOutput_(handleCapture_(payload));
+  } catch (err) {
+    return jsonOutput_({ ok: false, error: String(err) });
+  }
+}
+
+// ============================ CORE PIPELINE =================================
+
+/**
+ * The whole capture pipeline. Shared by doPost() and TEST_endToEnd() so the
+ * editor test exercises exactly the code the web app runs.
+ *
+ * @param {Object} payload Parsed JSON body: { key, device, capturedAt, format, image }.
+ * @return {Object} { ok: true, id, screenshot_url } or { ok: false, error }.
+ */
+function handleCapture_(payload) {
+  // --- 1. Shared key (401-style refusal; the HTTP status is still 200) ---
+  if (SECRET_KEY) {
+    if (typeof payload.key !== "string" || payload.key !== SECRET_KEY) {
+      return { ok: false, error: "Wrong or missing key." };
+    }
+  }
+
+  // --- 2. Device name: string, trimmed, capped at 60 characters ---
+  let device = typeof payload.device === "string" ? payload.device : "";
+  device = device.replace(/\s+/g, " ").trim();
+  if (!device) device = "Parent PC";
+  if (device.length > 60) device = device.slice(0, 60);
+
+  // --- 3. Capture time: any parseable date, otherwise "now"; stored as ISO ---
+  let captured = payload.capturedAt ? new Date(payload.capturedAt) : new Date();
+  if (isNaN(captured.getTime())) captured = new Date();
+  const capturedIso = captured.toISOString();
+
+  // --- 4. Image: present, valid base64, within the size limit ---
+  let imageBase64 = typeof payload.image === "string" ? payload.image : "";
+  // Defensive: tolerate an accidental data-URI prefix and stray whitespace.
+  imageBase64 = imageBase64.replace(/^data:[^,]*,/, "").replace(/\s/g, "");
+  if (!imageBase64) {
+    return { ok: false, error: "No image was included in the request." };
+  }
+  let bytes;
+  try {
+    bytes = Utilities.base64Decode(imageBase64);
+  } catch (decodeErr) {
+    return { ok: false, error: "The image could not be decoded as base64." };
+  }
+  if (!bytes || bytes.length === 0) {
+    return { ok: false, error: "The image was empty after decoding." };
+  }
+  if (bytes.length > MAX_IMAGE_BYTES) {
+    return {
+      ok: false,
+      error: "The image is too large (" + bytes.length + " bytes; the limit is " + MAX_IMAGE_BYTES + ")."
+    };
+  }
+
+  // --- 5. Build the blob (PNG unless the sender says jpg/jpeg) ---
+  const format = typeof payload.format === "string" ? payload.format.trim().toLowerCase() : "png";
+  const isJpeg = format === "jpg" || format === "jpeg";
+  const contentType = isJpeg ? "image/jpeg" : "image/png";
+  const extension = isJpeg ? "jpg" : "png";
+  const fileName = "scamguard-" + capturedIso.replace(/[:.]/g, "-") + "." + extension;
+  const blob = Utilities.newBlob(bytes, contentType, fileName);
+
+  // --- 6. Save to Drive and make the file viewable by link ---
+  const folder = getOrCreateFolder_();
+  const file = folder.createFile(blob);
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (sharingErr) {
+    // Some Google Workspace domains forbid link sharing. The capture still
+    // succeeds, but the dashboard cannot display the image until sharing is
+    // fixed by hand (see the troubleshooting table in SETUP.md).
+  }
+  const screenshotUrl = "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w1600";
+
+  // --- 7. OCR (best effort; "" on any failure) ---
+  const ocrText = tryOcr_(blob);
+
+  // --- 8. Append the row, serialised with a script lock ---
+  const id = Utilities.getUuid();
+  // device and ocrText both arrive from the outside world - neutralise formulas in both.
+  const row = [id, screenshotUrl, capturedIso, sheetSafe_(device), sheetSafe_(ocrText)];
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10 * 1000); // throws if another capture holds the lock > 10 s
+  try {
+    const sheet = getOrCreateSheet_();
+    sheet.appendRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+
+  // --- 9. Notify the caregiver (a mail failure must never fail the capture) ---
+  sendNotification_(device, captured, ocrText, screenshotUrl);
+
+  return { ok: true, id: id, screenshot_url: screenshotUrl };
+}
+
+// ============================== HELPERS =====================================
+
+/** Wraps a plain object as a JSON HTTP response. */
+function jsonOutput_(body) {
+  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(
+    ContentService.MimeType.JSON
+  );
+}
+
+/**
+ * Sheets treats cell text that starts with =, + or @ as a formula. OCR text
+ * and device names arrive from the outside world, so neutralise them with a
+ * leading apostrophe - Sheets' own "treat this as text" marker, which is not
+ * stored as part of the value.
+ */
+function sheetSafe_(text) {
+  return /^[=+@]/.test(text) ? "'" + text : text;
+}
+
+/**
+ * Returns the Drive folder that stores the screenshots, creating it on first
+ * use. The folder id is cached in Script Properties; if the cached folder was
+ * deleted or trashed, the cache is refreshed (reusing a same-named live
+ * folder when one exists, so cleared properties do not spawn duplicates).
+ */
+function getOrCreateFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const cachedId = props.getProperty(FOLDER_ID_PROPERTY);
+  if (cachedId) {
+    try {
+      const cached = DriveApp.getFolderById(cachedId);
+      if (!cached.isTrashed()) return cached;
+    } catch (gone) {
+      // Deleted or inaccessible; fall through and find or create a new one.
+    }
+  }
+  let folder = null;
+  const existing = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  while (existing.hasNext()) {
+    const candidate = existing.next();
+    if (!candidate.isTrashed()) {
+      folder = candidate;
+      break;
+    }
+  }
+  if (!folder) folder = DriveApp.createFolder(DRIVE_FOLDER_NAME);
+  props.setProperty(FOLDER_ID_PROPERTY, folder.getId());
+  return folder;
+}
+
+/**
+ * Returns the sheet that receives capture rows, creating the tab and header
+ * if needed.
+ *
+ * Normal path: this script is container-bound (created via Extensions ->
+ * Apps Script inside the spreadsheet), so getActiveSpreadsheet() finds it.
+ *
+ * Standalone path: if the script was created at script.google.com instead,
+ * there is no active spreadsheet. Add a Script Property named SPREADSHEET_ID
+ * (Project Settings -> Script properties) holding the target spreadsheet's
+ * id - the long string in its URL between /d/ and /edit.
+ */
+function getOrCreateSheet_() {
+  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) {
+    const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
+      SPREADSHEET_ID_PROPERTY
+    );
+    if (!spreadsheetId) {
+      throw new Error(
+        "No spreadsheet available. Bind this script to a Google Sheet " +
+          "(Extensions -> Apps Script) or add a Script Property named " +
+          SPREADSHEET_ID_PROPERTY + " with the spreadsheet id."
+      );
+    }
+    spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  }
+  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = spreadsheet.insertSheet(SHEET_NAME);
+  if (sheet.getLastRow() === 0) sheet.appendRow(SHEET_HEADER);
+  return sheet;
+}
+
+/**
+ * Best-effort server-side OCR. Inserts the image via the advanced Drive
+ * service (Drive API v2) with ocr:true, which converts it into a temporary
+ * Google Doc; reads the Doc's text; trashes the temporary Doc. Returns ""
+ * on any failure, including when the advanced service is not enabled
+ * (unenabled advanced services simply do not exist as globals, hence the
+ * typeof check).
+ */
+function tryOcr_(imageBlob) {
+  if (!OCR_ENABLED) return "";
+  if (typeof Drive === "undefined") return ""; // advanced Drive service not enabled
+  let tempDocId = null;
+  try {
+    const resource = {
+      title: "scamguard-ocr-tmp",
+      mimeType: "application/vnd.google-apps.document"
+    };
+    const tempDoc = Drive.Files.insert(resource, imageBlob, {
+      ocr: true,
+      ocrLanguage: OCR_LANGUAGE
+    });
+    tempDocId = tempDoc.id;
+    let text = DocumentApp.openById(tempDocId).getBody().getText();
+    text = (text || "").trim();
+    if (text.length > OCR_MAX_CHARS) text = text.slice(0, OCR_MAX_CHARS);
+    return text;
+  } catch (ocrErr) {
+    return "";
+  } finally {
+    if (tempDocId) {
+      try {
+        DriveApp.getFileById(tempDocId).setTrashed(true);
+      } catch (cleanupErr) {
+        // Leaving a stray "scamguard-ocr-tmp" doc behind is untidy but harmless.
+      }
+    }
+  }
+}
+
+/**
+ * Emails the caregiver about a capture. Wrapped in try/catch because a mail
+ * failure (quota, bad address) must never fail the capture itself.
+ */
+function sendNotification_(device, capturedDate, ocrText, screenshotUrl) {
+  try {
+    const recipient = NOTIFY_EMAIL || Session.getEffectiveUser().getEmail();
+    if (!recipient) return;
+    const subject = `ScamGuard: ${device} pressed the red key`;
+    const timeText = Utilities.formatDate(
+      capturedDate,
+      EMAIL_TIMEZONE,
+      "EEEE d MMMM yyyy 'at' HH:mm"
+    );
+    const excerpt = ocrText
+      ? ocrText.slice(0, 300)
+      : "The text could not be read automatically.";
+    const lines = [
+      device + " pressed the red key.",
+      "",
+      "When: " + timeText + " (South Africa time)",
+      "Device: " + device,
+      "",
+      "What the screen said (first part):",
+      excerpt,
+      "",
+      "Screenshot: " + screenshotUrl
+    ];
+    if (DASHBOARD_URL) {
+      lines.push("", "Open the dashboard: " + DASHBOARD_URL);
+    }
+    MailApp.sendEmail(recipient, subject, lines.join("\n"));
+  } catch (mailErr) {
+    // Swallowed on purpose: the row and the file already exist, which is
+    // what matters. Mail problems surface in the Executions log.
+  }
+}
+
+// ================================ TEST ======================================
+
+/**
+ * A valid 70-byte 1x1 transparent PNG (verified: correct PNG signature and
+ * decodes as a 1x1 RGBA image). Used by TEST_endToEnd.
+ */
+const TEST_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+/**
+ * Run this once from the editor to prove the whole pipeline end to end.
+ *
+ * NOTE: this is a REAL run, not a dry run. It will:
+ *   - create a file in the "ScamGuard Screenshots" Drive folder,
+ *   - append a row to the "Screenshots" sheet, and
+ *   - send a real notification email.
+ * Delete the test row and file afterwards if you want a clean slate.
+ *
+ * The test image is a blank 1x1 pixel, so ocr_text will be empty - that is
+ * expected, not a failure. Check the execution log for the result, the
+ * appended row, and the screenshot URL.
+ */
+function TEST_endToEnd() {
+  const result = handleCapture_({
+    key: SECRET_KEY, // always matches whatever CONFIG says, even if empty
+    device: "Editor test",
+    capturedAt: new Date().toISOString(),
+    format: "png",
+    image: TEST_PNG_BASE64
+  });
+  Logger.log("Result: " + JSON.stringify(result));
+  if (result.ok) {
+    const sheet = getOrCreateSheet_();
+    const lastRow = sheet
+      .getRange(sheet.getLastRow(), 1, 1, SHEET_HEADER.length)
+      .getValues()[0];
+    Logger.log('Row appended to "' + SHEET_NAME + '": ' + JSON.stringify(lastRow));
+    Logger.log("Screenshot URL: " + result.screenshot_url);
+  } else {
+    Logger.log("Capture failed: " + result.error);
+  }
+}

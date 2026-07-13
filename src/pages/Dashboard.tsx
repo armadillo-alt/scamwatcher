@@ -213,6 +213,7 @@ export default function Dashboard() {
       {panelItem && (
         <DetailPanel
           item={panelItem}
+          parentPhone={shots.settings.parentPhone}
           onClose={() => setPanelId(null)}
           onVerdict={(v) => verdictAndAdvance(panelItem.id, v, true)}
           onReopen={() => reopen(panelItem.id)}

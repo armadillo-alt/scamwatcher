@@ -70,8 +70,28 @@ motion budget. Don't invent outside it; amend it deliberately instead.
 
 ## 4. How the stack fits together (explicit walkthrough)
 
-Frontend-only Vite + React 18 + TS strict. **7 runtime deps** (react, react-dom,
-react-router-dom, papaparse, tesseract.js, 2 fonts). No backend. No Tailwind — three
+Since the 2026-07-13 session the repo ships the **whole pipeline**, still with zero
+secrets in the repo (the one sensitive string — the Apps Script `/exec` URL — lives only
+in the parent PC's gitignored `capture/config.ini`). **SETUP-GUIDE.md is the map for
+going live**; deep dives in `capture/SETUP.md` and `appsscript/SETUP.md`.
+
+```
+capture/scamguard-key.ahk        parent PC: PrintScreen hook (AutoHotkey v2)
+  └─ capture-and-send.ps1        screenshots all monitors, POSTs {device, capturedAt,
+                                 image b64} to the /exec URL; offline queue + retry in
+                                 %LOCALAPPDATA%\ScamGuard (watcher.ps1 = no-AHK variant)
+appsscript/Code.gs               runs as Dante's Google account: saves PNG to Drive,
+                                 OCRs server-side (Drive API v2), appends the sheet row
+                                 (id|screenshot_url|timestamp|parent_id|ocr_text),
+                                 emails Dante → Android pings
+Google Sheet → published CSV  →  the dashboard (installable PWA; GitHub Pages workflow
+                                 in .github/workflows/deploy.yml)
+Local stand-in for the Google side: scripts/mock-backend.mjs (port 8787) — used to
+e2e-test capture → CSV → dashboard without touching Google.
+```
+
+The dashboard itself: Vite + React 18 + TS strict. **7 runtime deps** (react, react-dom,
+react-router-dom, papaparse, tesseract.js, 2 fonts). No Tailwind — three
 hand-written stylesheets (`src/styles/tokens.css` → `base.css` → `components.css`).
 
 Data flow, in order:
@@ -194,15 +214,17 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
 
 ## 8. Roadmap (in the order I'd do it)
 
-1. **Capture side (the real missing half).** Nothing in this repo captures screenshots.
-   Options, cheapest first: (a) a tiny AutoHotkey/PowerShell script on the parent's PC
-   bound to a spare key — screenshot → append row to the sheet via Apps Script web-app URL;
-   (b) a browser extension (screenshot + page text, no OCR needed — better signal);
-   (c) the physical key: any programmable macro keypad (R150–R300) mapped to the script.
-   Keep the sheet as the transport; it's free and already wired.
-2. **A real backend, only when needed** (accounts, multiple caregivers, guidance delivery
-   to the parent's machine, private image storage). Supabase/Firebase tier is enough.
-   Auth belongs there — never client-side.
+1. ~~Capture side~~ — **built 2026-07-13** (capture/ + appsscript/, see §4). Remaining
+   polish there: Afrikaans tooltip option for the parent-side feedback; a tiny installer
+   script; a macro-keypad variant (any R150–R300 programmable pad mapped to PrintScreen).
+2. **Close the loop to the parent.** Today the "assist" channel is Dante phoning/WhatsApping
+   (one-tap from the detail panel). A next step could show the parent an on-screen answer:
+   the capture script polls the Apps Script for a verdict on its last capture and shows a
+   gentle popup ("Dante says: it's safe" / "Don't touch it — he's phoning you"). Needs a
+   doGet action + verdict POST from the dashboard (the dashboard would then hold the /exec
+   URL in its local Settings — still no secret in the repo).
+3. **A real backend, only when needed** (accounts, multiple caregivers, private image
+   storage). Supabase/Firebase tier is enough. Auth belongs there — never client-side.
 3. **Engine v3**: co-occurrence boosts (impersonation + urgency in proximity), Afrikaans
    patterns (large share of the target demographic), allowlist of known-legit SA domains
    to cut false positives on real bank pages. The negation guard (analyze.ts) is a first
@@ -235,6 +257,12 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
 | Visual/copy rules | `DESIGN.md` (binding) |
 | Rules for Claude sessions | `CLAUDE.md` |
 | User-facing docs | `README.md` |
+| Going-live map (capture → backend → phone) | `SETUP-GUIDE.md` |
+| Parent-PC capture scripts | `capture/` (config.ini is gitignored — it holds the /exec URL) |
+| Backend (Dante's Google account) | `appsscript/` |
+| Local pipeline stand-in | `scripts/mock-backend.mjs` |
+| PWA bits | `public/manifest.webmanifest`, `public/sw.js`, `scripts/make-icons.mjs` |
+| Deploy | `.github/workflows/deploy.yml` (GitHub Pages, subpath-aware) |
 | Engine data / logic / contract | `src/lib/engine/{patterns,analyze,analyze.test}.ts` |
 | Scam guide content | `src/lib/learnContent.ts` |
 | Demo data | `src/lib/demoData.ts` |

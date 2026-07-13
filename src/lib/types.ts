@@ -67,4 +67,9 @@ export interface Settings {
   sheetCsvUrl: string;
   /** Run Tesseract.js on rows that arrive without ocr_text. */
   ocrEnabled: boolean;
+  /**
+   * The parent's phone number with country code (e.g. "+27 82 123 4567").
+   * Powers the Call / WhatsApp buttons in the detail panel. Optional, local-only.
+   */
+  parentPhone: string;
 }

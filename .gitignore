@@ -28,3 +28,9 @@ token.json
 *.pem
 venv/
 __pycache__/
+
+# The parent-PC config holds the Apps Script capability URL — never commit it.
+capture/config.ini
+
+# Local e2e mock-backend state
+.mock-data/

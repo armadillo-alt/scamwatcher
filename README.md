@@ -11,7 +11,9 @@ plain-language guide to the scams that actually circulate in South Africa (SARS 
 SASSA grants, bank impersonation, “Hi Mom” WhatsApp messages…).
 
 **Design and architecture are documented in [DESIGN.md](DESIGN.md).
-If you are picking this project up, start with [HANDOFF.md](HANDOFF.md).**
+If you are picking this project up, start with [HANDOFF.md](HANDOFF.md).
+To put the whole pipeline live — red key on the parent's PC, Google-side backend,
+the app on your Android — follow [SETUP-GUIDE.md](SETUP-GUIDE.md).**
 
 ## Run it
 
@@ -32,6 +34,9 @@ That's all — the app starts on bundled demo data. No accounts, no keys, no bac
 ## How it fits together
 
 ```
+Parent presses the red key (capture/) ──▶ Apps Script backend (appsscript/)
+                                              │ Drive image + OCR + email ping
+                                              ▼
 Google Sheet (published CSV, optional) ──┐
 Bundled demo data ───────────────────────┤
                                          ▼

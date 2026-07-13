@@ -39,6 +39,7 @@ const DEFAULT_SETTINGS: Settings = {
   source: "demo",
   sheetCsvUrl: (import.meta.env.VITE_SHEET_CSV_URL as string | undefined) ?? "",
   ocrEnabled: true,
+  parentPhone: "",
 };
 
 export function loadSettings(): Settings {

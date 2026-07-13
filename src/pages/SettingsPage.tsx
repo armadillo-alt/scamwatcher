@@ -139,6 +139,30 @@ export default function SettingsPage() {
         </section>
 
         <section className="settings-card rise" style={{ ["--i" as string]: 3 }}>
+          <h3>Reaching your parent</h3>
+          <div className="field">
+            <label htmlFor="parent-phone">Their phone number</label>
+            <input
+              id="parent-phone"
+              className="input"
+              type="tel"
+              placeholder="+27 82 123 4567"
+              value={settings.parentPhone}
+              onChange={(e) => setSettings({ ...settings, parentPhone: e.target.value })}
+            />
+            <span className="hint">
+              Include the country code. This adds Call and WhatsApp buttons when you review a
+              screenshot — so helping them is one tap. Stored only on this device.
+            </span>
+          </div>
+          <div className="btn-row">
+            <button className="btn btn-primary" onClick={save}>
+              Save and reload
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-card rise" style={{ ["--i" as string]: 4 }}>
           <h3>Your reviews</h3>
           <p className="hint">
             Verdicts, notes and guidance live only in this browser. Export them to move to another

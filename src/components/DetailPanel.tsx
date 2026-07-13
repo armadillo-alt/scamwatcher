@@ -11,6 +11,7 @@ const FOCUSABLE =
 
 export function DetailPanel({
   item,
+  parentPhone,
   onClose,
   onVerdict,
   onReopen,
@@ -18,6 +19,8 @@ export function DetailPanel({
   onSaveGuidance,
 }: {
   item: ScreenshotItem;
+  /** From Settings; "" hides the Call/WhatsApp actions. */
+  parentPhone: string;
   onClose: () => void;
   onVerdict: (verdict: Verdict) => void;
   onReopen: () => void;
@@ -94,6 +97,7 @@ export function DetailPanel({
         <DetailBody
           key={item.id}
           item={item}
+          parentPhone={parentPhone}
           onSaveNote={onSaveNote}
           onSaveGuidance={onSaveGuidance}
         />
@@ -121,10 +125,12 @@ export function DetailPanel({
 
 function DetailBody({
   item,
+  parentPhone,
   onSaveNote,
   onSaveGuidance,
 }: {
   item: ScreenshotItem;
+  parentPhone: string;
   onSaveNote: (note: string) => void;
   onSaveGuidance: (guidance: string) => void;
 }) {
@@ -133,6 +139,15 @@ function DetailBody({
   const [imgFailed, setImgFailed] = useState(false);
   const external = /^https?:\/\//.test(item.screenshotUrl);
   const text = item.ocrText ?? undefined;
+
+  const phone = parentPhone.trim();
+  /** wa.me wants digits only (with country code); tel: tolerates + and digits. */
+  const waDigits = phone.replace(/\D/g, "");
+  const telHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
+  const waText =
+    guidance.trim() ||
+    `Hi — I saw the screen you sent me (${formatWhen(item.timestamp)}). Don’t click anything on it for now. I’ll phone you in a bit.`;
+  const waHref = `https://wa.me/${waDigits}?text=${encodeURIComponent(waText)}`;
 
   return (
     <div className="detail-scroll">
@@ -254,6 +269,29 @@ function DetailBody({
           </button>
         </div>
       </div>
+
+      {phone !== "" && (
+        <div>
+          <p className="eyebrow" style={{ marginBottom: 12 }}>
+            Help them now
+          </p>
+          <div className="btn-row">
+            <a className="btn btn-primary" href={telHref}>
+              Call them
+            </a>
+            {waDigits.length >= 9 && (
+              <a
+                className="btn btn-quiet"
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp your guidance
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

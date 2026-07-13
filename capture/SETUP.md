@@ -53,6 +53,27 @@ AutoHotkey is the small free tool that lets us remap the key.
    anyone who has it can post into your sheet. It is gitignored in this
    repo on purpose - never commit or share it.
 
+## C2) Allow the script in antivirus (important, do not skip)
+
+A program that captures the screen and uploads it looks, to antivirus
+heuristics, exactly like the spyware it is designed to catch - so Windows
+Defender (or Norton/McAfee/etc.) may silently block `capture-and-send.ps1`
+with "This script contains malicious content." It is a false alarm, but if
+you skip this the red key will quietly do nothing.
+
+Add `C:\ScamGuard` as an exclusion. In an **Administrator** PowerShell:
+
+```
+Add-MpPreference -ExclusionPath "C:\ScamGuard"
+```
+
+(Or by hand: Windows Security -> Virus & threat protection -> Manage settings
+-> Add or remove exclusions -> Add a folder -> `C:\ScamGuard`.) If the parent
+uses a third-party antivirus, add the same folder exclusion there too.
+
+Only ever exclude this one folder, and only because you put the scripts in it
+and know what they do - you can read every line of `capture-and-send.ps1`.
+
 ## D) Test it
 
 1. Double-click `C:\ScamGuard\scamguard-key.ahk`. A green **H** icon
@@ -104,6 +125,8 @@ queueing works exactly the same.
 |---|---|
 | Tooltip: "No internet right now. Saved..." | The PC is offline. The screenshot waits in `%LOCALAPPDATA%\ScamGuard\queue` and is sent automatically at the start of the next press. Watch that folder fill and then empty to confirm the queue works. |
 | Pressing the red key does nothing at all | AutoHotkey is not running. Look for the green **H** icon in the tray; if missing, double-click `scamguard-key.ahk` and re-check the Startup shortcut (step E). |
+| Tooltip: "Something went wrong" AND `error.log` mentions "malicious content" / a virus block | Antivirus is blocking the capture script. Add the `C:\ScamGuard` exclusion in **step C2**. This is the most common first-run failure. |
+| Tooltip: "Something went wrong" right after setup | Besides antivirus, check `config.ini`: is `SECRET_KEY` here the same as in `Code.gs`? A wrong key is now reported honestly ("not sent") instead of being queued forever - `error.log` will say "endpoint rejected the screenshot: Wrong or missing key." |
 | Tooltip: "Something went wrong..." every time | Open `%LOCALAPPDATA%\ScamGuard\error.log`. The usual causes: `config.ini` missing, or `ENDPOINT_URL` still the placeholder. |
 | Worried that ExecutionPolicy blocks the script | It does not - both launch commands pass `-ExecutionPolicy Bypass`, which applies only to that one hidden process. Nothing to change on the PC. |
 | The parent has two monitors | Both arrive as one wide image. That is expected - the capture spans the whole desktop so nothing is missed. |

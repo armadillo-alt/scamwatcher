@@ -43,6 +43,11 @@ $script:EndpointUrl = ""
 $script:DeviceName  = $env:COMPUTERNAME
 $script:SecretKey   = ""
 
+# Set by New-ScreenCapture: "png" normally, "jpg" when the capture was large
+# enough to re-encode. Re-encode PNGs bigger than this many bytes.
+$script:CaptureFormat = "png"
+$script:JpegThreshold = 4MB
+
 function Initialize-ScamGuardDirs {
     if (-not (Test-Path -LiteralPath $script:QueueDir)) {
         New-Item -ItemType Directory -Path $script:QueueDir -Force | Out-Null
@@ -112,18 +117,35 @@ function Read-ScamGuardConfig {
 
 function Send-Json {
     param([string]$Body)
-    # True only when the endpoint replied with JSON { "ok": true }.
-    # Anything else (offline, HTTP error, HTML error page) is a failure.
+    # Returns one of three states so the caller can tell a real outage from a
+    # refusal that retrying will never fix:
+    #   "sent"        endpoint replied { "ok": true }
+    #   "rejected"    endpoint replied { "ok": false, ... } - wrong key, image
+    #                 too large, etc. Retrying is pointless; do NOT queue.
+    #   "unreachable" offline, timeout, HTTP/HTML error - safe to queue+retry.
     # The body is sent as explicit UTF-8 bytes so PowerShell 5.1 cannot
     # re-encode it. Apps Script answers POSTs with a redirect; 5.1 follows
     # it with a GET, which is exactly how Apps Script serves the response.
     try {
         $bytes = [Text.Encoding]::UTF8.GetBytes($Body)
         $response = Invoke-RestMethod -Uri $script:EndpointUrl -Method Post -ContentType "application/json; charset=utf-8" -TimeoutSec 30 -Body $bytes
-        if ($null -ne $response -and $response.ok -eq $true) { return $true }
-        return $false
+        if ($null -ne $response -and $response.ok -eq $true) { return "sent" }
+        # Only a definitive machine "no" (a parsed object with ok:false) counts
+        # as a rejection. An HTML error page or blank body is treated as an
+        # outage so a transient Google hiccup never discards a screenshot.
+        $hasOk = $false
+        if ($null -ne $response -and $null -ne $response.PSObject) {
+            $hasOk = @($response.PSObject.Properties.Name) -contains "ok"
+        }
+        if ($hasOk -and $response.ok -eq $false) {
+            $why = "endpoint rejected the screenshot"
+            if ($null -ne $response.error) { $why = $why + ": " + $response.error }
+            Write-Log -Path $script:ErrorLog -Message $why
+            return "rejected"
+        }
+        return "unreachable"
     } catch {
-        return $false
+        return "unreachable"
     }
 }
 
@@ -143,11 +165,17 @@ function Invoke-QueueFlush {
     foreach ($file in $files) {
         $body = $null
         try { $body = [IO.File]::ReadAllText($file.FullName, [Text.Encoding]::UTF8) } catch { continue }
-        if (Send-Json -Body $body) {
+        $status = Send-Json -Body $body
+        if ($status -eq "sent") {
             try { Remove-Item -LiteralPath $file.FullName -Force } catch { }
             $sent++
+        } elseif ($status -eq "rejected") {
+            # Permanently refused (Send-Json already logged why). Move it out of
+            # the queue so it stops blocking newer captures, but keep the file
+            # for diagnosis instead of deleting the parent's flagged screen.
+            try { Rename-Item -LiteralPath $file.FullName -NewName ($file.Name + ".rejected") -Force } catch { }
         } else {
-            break
+            break   # still unreachable; leave the rest queued for next time
         }
     }
     return $sent
@@ -175,6 +203,30 @@ function New-ScreenCapture {
         $graphics.CopyFromScreen($virtual.X, $virtual.Y, 0, 0, $bitmap.Size)
         $pngPath = Join-Path $env:TEMP ("scamguard-" + [Guid]::NewGuid().ToString("N") + ".png")
         $bitmap.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+        $script:CaptureFormat = "png"
+
+        # A lossless PNG of a 4K or multi-monitor desktop can be 10-30 MB, which
+        # would blow the endpoint's size limit and be slow on a poor connection.
+        # Re-encode oversized captures as JPEG (a fraction of the size, still
+        # perfectly readable). The bitmap is still alive here, before Dispose.
+        try {
+            if ((Get-Item -LiteralPath $pngPath).Length -gt $script:JpegThreshold) {
+                $jpegCodec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
+                    Where-Object { $_.MimeType -eq "image/jpeg" } | Select-Object -First 1
+                if ($null -ne $jpegCodec) {
+                    $jpgPath = [IO.Path]::ChangeExtension($pngPath, ".jpg")
+                    $encoderParams = New-Object System.Drawing.Imaging.EncoderParameters -ArgumentList 1
+                    $encoderParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter -ArgumentList ([System.Drawing.Imaging.Encoder]::Quality, [long]82)
+                    $bitmap.Save($jpgPath, $jpegCodec, $encoderParams)
+                    $encoderParams.Dispose()
+                    try { Remove-Item -LiteralPath $pngPath -Force } catch { }
+                    $script:CaptureFormat = "jpg"
+                    return $jpgPath
+                }
+            }
+        } catch {
+            # Re-encode failed for any reason: fall back to the original PNG.
+        }
         return $pngPath
     } finally {
         if ($null -ne $graphics) { $graphics.Dispose() }
@@ -190,7 +242,7 @@ function New-PayloadJson {
         key        = $script:SecretKey
         device     = $script:DeviceName
         capturedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        format     = "png"
+        format     = $script:CaptureFormat
         image      = [Convert]::ToBase64String([IO.File]::ReadAllBytes($PngPath))
     }
     return ($payload | ConvertTo-Json -Compress -Depth 3)
@@ -236,9 +288,17 @@ try {
     $byteCount = [Text.Encoding]::UTF8.GetByteCount($json)
 
     # 3) Send now, or queue for the next run.
-    if (Send-Json -Body $json) {
+    $status = Send-Json -Body $json
+    if ($status -eq "sent") {
         Write-Log -Path $script:ActivityLog -Message ("SENT " + $byteCount + " bytes" + $flushedNote)
         exit 0
+    }
+    if ($status -eq "rejected") {
+        # The endpoint refused it (Send-Json logged why). Queuing would just
+        # retry the same doomed request, so fail honestly - the parent is told
+        # it was not sent rather than falsely reassured it is on its way.
+        Write-Log -Path $script:ActivityLog -Message ("REJECTED " + $byteCount + " bytes - not queued" + $flushedNote)
+        exit 1
     }
     $queuedPath = Save-ToQueue -Body $json
     Write-Log -Path $script:ActivityLog -Message ("QUEUED " + $byteCount + " bytes as " + (Split-Path -Leaf $queuedPath) + $flushedNote)

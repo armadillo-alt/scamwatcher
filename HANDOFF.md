@@ -247,6 +247,17 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
 - localStorage keys are versioned (`.v1`); bump + migrate if you change shapes.
 - The `.claude/` dir is gitignored (session-local launch config lives there).
 - Windows machine: git warns LF→CRLF on every commit — harmless, ignore it.
+- **Antivirus blocks the capture script by design.** `capture-and-send.ps1` screenshots
+  the desktop and POSTs it — indistinguishable from spyware to a heuristic scanner, so
+  Windows Defender/AMSI flags it as "malicious content" (observed live this session). This
+  is not a code bug; the fix is the `C:\ScamGuard` AV exclusion documented in
+  capture/SETUP.md step C2. Any rewrite of the capture script inherits this — signing or an
+  exclusion are the only real answers, not code changes. The send-logic and JPEG re-encode
+  were verified in isolation (they don't touch the screen, so AMSI leaves them alone).
+- The capture script's send now has THREE outcomes, not two: sent (exit 0), rejected
+  (exit 1 — endpoint said ok:false, e.g. wrong key/too large; NOT queued, because retrying
+  is futile) and unreachable (exit 2 — queued). A queued item that later gets rejected is
+  renamed `*.json.rejected` (dead-letter, kept for diagnosis) so it can't block the queue.
 - react-refresh lint warns on `Toast.tsx` (exports both `toast()` and `ToastHost`) —
   known, accepted; it's a dev-only fast-refresh nicety, not worth splitting the file.
 

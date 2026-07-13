@@ -43,7 +43,9 @@ You come out of it with two URLs:
 
 Follow **[capture/SETUP.md](capture/SETUP.md)**: red sticker on **PrintScreen**,
 install AutoHotkey v2, copy the two scripts + your `config.ini` to `C:\ScamGuard`,
-add the startup shortcut, press the key once to test.
+**add the antivirus exclusion for `C:\ScamGuard` (step C2 — don't skip it; a
+screen-capture-and-upload tool trips AV heuristics by design)**, add the startup
+shortcut, press the key once to test.
 
 Then the only sentence your parent needs:
 
@@ -76,8 +78,11 @@ Then the only sentence your parent needs:
 
 - [ ] Press the red key on the parent's PC → tooltip says it was sent
 - [ ] A new row appears in the Google Sheet within ~15 seconds
-- [ ] The email arrives on your phone
-- [ ] Pull-to-refresh (or Refresh) in ScamGuard shows the screenshot with its image
+- [ ] The email arrives on your phone (this is your real-time doorbell)
+- [ ] Pull-to-refresh (or Refresh) in ScamGuard shows the screenshot — **allow up to
+      ~5 minutes**: Google caches the published CSV, so the dashboard can lag the sheet
+      by a few minutes. The email is instant; the dashboard list is not. (Nothing is
+      broken if the row is in the sheet but not yet in the app — wait and refresh.)
 - [ ] Risk level and “why it was flagged” make sense
 - [ ] Unplug the parent's network cable, press the key → tooltip says “saved, will send
       later” → replug, press again → both arrive

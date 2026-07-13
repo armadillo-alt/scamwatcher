@@ -60,7 +60,11 @@ const SHEET_NAME = "Screenshots";
 const DRIVE_FOLDER_NAME = "ScamGuard Screenshots";
 
 // Reject images larger than this many bytes (measured after base64 decoding).
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+// A lossless PNG of a 4K or multi-monitor desktop can be 10-25 MB; the capture
+// script re-encodes big screens to JPEG, but keep the ceiling generous so a
+// legitimate full-desktop capture is never silently dropped. (The base64 body
+// is ~4/3 of this; 30 MB -> ~40 MB, within Apps Script's ~50 MB POST limit.)
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024; // 30 MB
 
 // Server-side OCR via the advanced Drive service (Drive API v2). If the
 // service is not enabled, or OCR fails for any reason, the capture still
@@ -222,13 +226,15 @@ function jsonOutput_(body) {
 }
 
 /**
- * Sheets treats cell text that starts with =, + or @ as a formula. OCR text
- * and device names arrive from the outside world, so neutralise them with a
- * leading apostrophe - Sheets' own "treat this as text" marker, which is not
- * stored as part of the value.
+ * Sheets treats cell text that starts with =, +, -, @, or a tab/CR as a
+ * formula or command. OCR text and device names arrive from the outside
+ * world, so neutralise them with a leading apostrophe - Sheets' own "treat
+ * this as text" marker, which is not stored as part of the value. Covers the
+ * full OWASP CSV-injection prefix set (a leading "-" e.g. "-URGENT..." would
+ * otherwise be read as a formula and show #NAME? instead of the scam text).
  */
 function sheetSafe_(text) {
-  return /^[=+@]/.test(text) ? "'" + text : text;
+  return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
 }
 
 /**

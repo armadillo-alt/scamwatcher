@@ -225,6 +225,12 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
    URL in its local Settings — still no secret in the repo).
 3. **A real backend, only when needed** (accounts, multiple caregivers, private image
    storage). Supabase/Firebase tier is enough. Auth belongs there — never client-side.
+4. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
+   All are **devDependencies** affecting only the local dev server and test runner — none ship
+   in the built static site, so production risk is nil. The fix is a major bump (vite 5→8,
+   vitest 2→3) that needs a full re-verify pass; do it deliberately, not via `audit fix --force`.
+   (The larger Dependabot count on GitHub is inflated by the old lockfile history and will
+   settle after a rescan.)
 3. **Engine v3**: co-occurrence boosts (impersonation + urgency in proximity), Afrikaans
    patterns (large share of the target demographic), allowlist of known-legit SA domains
    to cut false positives on real bank pages. The negation guard (analyze.ts) is a first

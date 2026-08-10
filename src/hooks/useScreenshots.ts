@@ -4,6 +4,7 @@ import { analyzeText } from "../lib/engine/analyze";
 import { extractText, getCachedText } from "../lib/ocr";
 import { fetchRows } from "../lib/sources";
 import { loadReviews, loadSettings, saveReviews } from "../lib/store";
+import { sendScamWarning } from "../lib/verdicts";
 import type {
   Review,
   RiskLevel,
@@ -121,6 +122,13 @@ export function useScreenshots() {
     [rows, ocrTexts, reviews],
   );
 
+  // Latest items, readable from callbacks that must not re-create on every
+  // render (setVerdict needs the item's device name to address the warning).
+  const itemsRef = useRef<ScreenshotItem[]>([]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   /* ---------- Actions ---------- */
 
   const applyReview = useCallback((id: string, patch: Partial<Review>) => {
@@ -138,8 +146,24 @@ export function useScreenshots() {
     (id: string, verdict: Verdict) => {
       applyReview(id, { verdict });
       toast(verdict === "safe" ? "Marked safe" : "Marked as scam");
+
+      // Warn the PC. Fire-and-forget: the verdict is already saved locally, so
+      // a relay problem must never block or undo the caregiver's decision.
+      if (verdict === "scam" && settings.endpointUrl.trim()) {
+        const item = itemsRef.current.find((i) => i.id === id);
+        if (item) {
+          void sendScamWarning(settings, item, verdict).then((result) => {
+            if (result.skipped) return;
+            toast(
+              result.ok
+                ? `Warning sent to ${item.device}`
+                : `Could not warn ${item.device} — ${result.error}. Phone them.`,
+            );
+          });
+        }
+      }
     },
-    [applyReview],
+    [applyReview, settings],
   );
 
   const reopen = useCallback(

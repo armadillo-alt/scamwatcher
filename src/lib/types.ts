@@ -72,4 +72,12 @@ export interface Settings {
    * Powers the Call / WhatsApp buttons in the detail panel. Optional, local-only.
    */
   parentPhone: string;
+  /**
+   * Apps Script /exec URL. Optional; when set, marking a screenshot as a scam
+   * sends a warning back to the monitored PC. Stored only in this browser —
+   * it is a capability URL and must never reach the repository.
+   */
+  endpointUrl: string;
+  /** Shared key matching SECRET_KEY on the Apps Script side. Local-only. */
+  endpointKey: string;
 }

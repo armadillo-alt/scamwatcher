@@ -163,6 +163,47 @@ export default function SettingsPage() {
         </section>
 
         <section className="settings-card rise" style={{ ["--i" as string]: 4 }}>
+          <h3>Warning their PC</h3>
+          <p className="hint">
+            With this set, marking a screenshot as a scam puts a large warning on their
+            screen within about a minute — so they stop before you can even phone.
+          </p>
+          <div className="field">
+            <label htmlFor="endpoint-url">Apps Script link (the /exec one)</label>
+            <input
+              id="endpoint-url"
+              className="input"
+              type="url"
+              placeholder="https://script.google.com/macros/s/…/exec"
+              value={settings.endpointUrl}
+              onChange={(e) => setSettings({ ...settings, endpointUrl: e.target.value })}
+            />
+            <span className="hint">
+              The same link you put in their <code>config.ini</code>. Treat it like a
+              password — it stays in this browser and is never sent anywhere else.
+            </span>
+          </div>
+          <div className="field">
+            <label htmlFor="endpoint-key">Shared key (if you set one)</label>
+            <input
+              id="endpoint-key"
+              className="input"
+              type="password"
+              autoComplete="off"
+              placeholder="leave blank if you did not set one"
+              value={settings.endpointKey}
+              onChange={(e) => setSettings({ ...settings, endpointKey: e.target.value })}
+            />
+            <span className="hint">Must match SECRET_KEY on the Apps Script side.</span>
+          </div>
+          <div className="btn-row">
+            <button className="btn btn-primary" onClick={save}>
+              Save and reload
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-card rise" style={{ ["--i" as string]: 5 }}>
           <h3>Your reviews</h3>
           <p className="hint">
             Verdicts, notes and guidance live only in this browser. Export them to move to another

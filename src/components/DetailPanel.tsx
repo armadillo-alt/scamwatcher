@@ -259,6 +259,10 @@ function DetailBody({
           value={guidance}
           onChange={(e) => setGuidance(e.target.value)}
         />
+        <span className="hint">
+          Save this before marking a scam and these are the words that appear on their
+          screen. Otherwise they get a firm standard warning.
+        </span>
         <div>
           <button
             className="btn btn-quiet btn-sm"

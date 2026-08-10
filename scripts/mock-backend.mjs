@@ -28,6 +28,9 @@ const CANNED_OCR =
 mkdirSync(IMAGES, { recursive: true });
 if (!existsSync(SHEET)) writeFileSync(SHEET, HEADER);
 
+/** In-memory stand-in for the Apps Script "Verdicts" sheet. */
+const verdicts = [];
+
 const csvEscape = (s) => `"${String(s).replaceAll('"', '""')}"`;
 
 const json = (res, code, obj) => {
@@ -70,6 +73,27 @@ createServer((req, res) => {
     req.on("end", () => {
       try {
         const p = JSON.parse(body);
+
+        // --- the way back: caregiver verdict, and the PC's poll for it ---
+        if (p.action === "verdict") {
+          const at = new Date().toISOString();
+          const msg = String(p.message ?? "").replace(/[|\r\n\t]+/g, " ").trim().slice(0, 400);
+          verdicts.push({ device: String(p.device ?? ""), verdict: String(p.verdict ?? ""), at, message: msg });
+          console.log(`[mock] verdict ${p.verdict} for ${p.device}: "${msg}"`);
+          return json(res, 200, { ok: true, at });
+        }
+        if (p.action === "poll") {
+          const sinceMs = Date.parse(p.since ?? "") || Date.now() - 10 * 60 * 1000;
+          const lines = ["OK"];
+          for (const v of verdicts) {
+            if (v.device !== p.device) continue;
+            if (Date.parse(v.at) <= sinceMs) continue;
+            lines.push(`${v.verdict}|${v.at}|${v.message}`);
+          }
+          res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" });
+          return res.end(lines.join("\n"));
+        }
+
         if (typeof p.image !== "string" || p.image.length === 0) {
           return json(res, 200, { ok: false, error: "image missing" });
         }

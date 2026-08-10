@@ -89,6 +89,19 @@ const OCR_MAX_CHARS = 6000; // cap stored OCR text at this many characters
 // Column order the dashboard expects. parent_id holds the device name.
 const SHEET_HEADER = ["id", "screenshot_url", "timestamp", "parent_id", "ocr_text"];
 
+// The caregiver's decisions, sent back from the dashboard so the client PC can
+// warn the person sitting at it. Append-only; the PC keeps its own watermark.
+const VERDICTS_SHEET_NAME = "Verdicts";
+const VERDICT_HEADER = ["id", "screenshot_id", "device", "verdict", "message", "created_at"];
+
+// A PC that has never polled before only sees verdicts from the last few
+// minutes, so a fresh install cannot replay a backlog of old warnings.
+const POLL_DEFAULT_WINDOW_MS = 10 * 60 * 1000;
+// Never return more than this many verdicts in one poll.
+const POLL_MAX_ROWS = 20;
+// How far back to scan the Verdicts sheet on each poll.
+const POLL_SCAN_ROWS = 200;
+
 // Script Properties keys (Project Settings -> Script properties).
 const FOLDER_ID_PROPERTY = "SCAMGUARD_FOLDER_ID"; // cached folder id; safe to delete
 const SPREADSHEET_ID_PROPERTY = "SPREADSHEET_ID"; // only read by standalone scripts
@@ -129,6 +142,18 @@ function doPost(e) {
     }
     if (!payload || typeof payload !== "object") {
       return jsonOutput_({ ok: false, error: "The request body must be a JSON object." });
+    }
+
+    // Three kinds of request share this one endpoint. Anything without an
+    // "action" is a screenshot capture, so older clients keep working.
+    const action = typeof payload.action === "string" ? payload.action : "capture";
+    if (action === "poll") {
+      // Plain text on purpose: the client PC parses this with a few lines of
+      // string handling, no JSON library needed.
+      return textOutput_(handlePoll_(payload));
+    }
+    if (action === "verdict") {
+      return jsonOutput_(handleVerdict_(payload));
     }
     return jsonOutput_(handleCapture_(payload));
   } catch (err) {
@@ -230,6 +255,122 @@ function handleCapture_(payload) {
   return { ok: true, id: id, screenshot_url: screenshotUrl };
 }
 
+// ====================== VERDICTS (the way back) =============================
+
+/**
+ * Records the caregiver's decision so the client PC can act on it.
+ * Called by the dashboard when "Mark as scam" / "Mark safe" is tapped.
+ *
+ * @param {Object} payload { key, action:"verdict", id, device, verdict, message }
+ * @return {Object} { ok: true, at } or { ok: false, error }
+ */
+function handleVerdict_(payload) {
+  const secret = effectiveSecretKey_();
+  if (secret) {
+    if (typeof payload.key !== "string" || payload.key !== secret) {
+      return { ok: false, error: "Wrong or missing key." };
+    }
+  }
+
+  const verdict = String(payload.verdict || "").toLowerCase();
+  if (verdict !== "scam" && verdict !== "safe") {
+    return { ok: false, error: "verdict must be 'scam' or 'safe'." };
+  }
+
+  let device = typeof payload.device === "string" ? payload.device.replace(/\s+/g, " ").trim() : "";
+  if (!device) {
+    return { ok: false, error: "device is required so we know which PC to warn." };
+  }
+  if (device.length > 60) device = device.slice(0, 60);
+
+  const screenshotId = typeof payload.id === "string" ? payload.id.slice(0, 80) : "";
+  const message = pollSafeText_(payload.message);
+  const createdAt = new Date().toISOString();
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10 * 1000);
+  try {
+    const sheet = getOrCreateVerdictsSheet_();
+    sheet.appendRow([
+      Utilities.getUuid(),
+      screenshotId,
+      sheetSafe_(device),
+      verdict,
+      sheetSafe_(message),
+      createdAt
+    ]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, at: createdAt };
+}
+
+/**
+ * Answers the client PC's "has anything been flagged for me?" poll.
+ * Returns PLAIN TEXT, first line "OK" or "ERR <reason>", then one line per
+ * verdict: verdict|iso8601|message  (oldest first).
+ *
+ * @param {Object} payload { key, action:"poll", device, since }
+ * @return {string}
+ */
+function handlePoll_(payload) {
+  const secret = effectiveSecretKey_();
+  if (secret) {
+    if (typeof payload.key !== "string" || payload.key !== secret) {
+      return "ERR wrong or missing key";
+    }
+  }
+
+  const device = typeof payload.device === "string" ? payload.device.replace(/\s+/g, " ").trim() : "";
+  if (!device) return "ERR device is required";
+
+  let sinceMs = 0;
+  if (typeof payload.since === "string" && payload.since.trim()) {
+    const parsed = new Date(payload.since.trim());
+    if (!isNaN(parsed.getTime())) sinceMs = parsed.getTime();
+  }
+  if (!sinceMs) sinceMs = Date.now() - POLL_DEFAULT_WINDOW_MS;
+
+  const sheet = getOrCreateVerdictsSheet_();
+  const lastRow = sheet.getLastRow();
+  const lines = ["OK"];
+  if (lastRow > 1) {
+    const firstRow = Math.max(2, lastRow - POLL_SCAN_ROWS + 1);
+    const values = sheet.getRange(firstRow, 1, lastRow - firstRow + 1, VERDICT_HEADER.length).getValues();
+    const matches = [];
+    for (let i = 0; i < values.length; i++) {
+      const row = values[i];
+      // Sheets may hand back a Date for the timestamp column, and may keep the
+      // leading apostrophe that sheetSafe_ added; normalise both.
+      const rowDevice = String(row[2]).replace(/^'/, "");
+      if (rowDevice !== device) continue;
+      const rawAt = row[5];
+      const atIso = (rawAt instanceof Date) ? rawAt.toISOString() : String(rawAt);
+      const atMs = new Date(atIso).getTime();
+      if (isNaN(atMs) || atMs <= sinceMs) continue;
+      const rowVerdict = String(row[3]).toLowerCase();
+      if (rowVerdict !== "scam" && rowVerdict !== "safe") continue;
+      const rowMessage = pollSafeText_(String(row[4]).replace(/^'/, ""));
+      matches.push(rowVerdict + "|" + atIso + "|" + rowMessage);
+    }
+    const recent = matches.slice(-POLL_MAX_ROWS);
+    for (let i = 0; i < recent.length; i++) lines.push(recent[i]);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Makes text safe for the one-line, pipe-delimited poll format: no pipes, no
+ * newlines, collapsed whitespace, bounded length.
+ */
+function pollSafeText_(text) {
+  return String(text == null ? "" : text)
+    .replace(/[|\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
+}
+
 // ============================== HELPERS =====================================
 
 /**
@@ -251,6 +392,13 @@ function effectiveSecretKey_() {
 function jsonOutput_(body) {
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(
     ContentService.MimeType.JSON
+  );
+}
+
+/** Plain-text HTTP response, used by the client PC's poll. */
+function textOutput_(text) {
+  return ContentService.createTextOutput(String(text)).setMimeType(
+    ContentService.MimeType.TEXT
   );
 }
 
@@ -310,23 +458,37 @@ function getOrCreateFolder_() {
  * id - the long string in its URL between /d/ and /edit.
  */
 function getOrCreateSheet_() {
-  let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  if (!spreadsheet) {
-    const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
-      SPREADSHEET_ID_PROPERTY
+  return getOrCreateSheetNamed_(SHEET_NAME, SHEET_HEADER);
+}
+
+/** The "Verdicts" tab: what the caregiver decided, for the client PC to read. */
+function getOrCreateVerdictsSheet_() {
+  return getOrCreateSheetNamed_(VERDICTS_SHEET_NAME, VERDICT_HEADER);
+}
+
+/** The spreadsheet this script writes to (see the note on getOrCreateSheet_). */
+function getSpreadsheet_() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (spreadsheet) return spreadsheet;
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(
+    SPREADSHEET_ID_PROPERTY
+  );
+  if (!spreadsheetId) {
+    throw new Error(
+      "No spreadsheet available. Bind this script to a Google Sheet " +
+        "(Extensions -> Apps Script) or add a Script Property named " +
+        SPREADSHEET_ID_PROPERTY + " with the spreadsheet id."
     );
-    if (!spreadsheetId) {
-      throw new Error(
-        "No spreadsheet available. Bind this script to a Google Sheet " +
-          "(Extensions -> Apps Script) or add a Script Property named " +
-          SPREADSHEET_ID_PROPERTY + " with the spreadsheet id."
-      );
-    }
-    spreadsheet = SpreadsheetApp.openById(spreadsheetId);
   }
-  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
-  if (!sheet) sheet = spreadsheet.insertSheet(SHEET_NAME);
-  if (sheet.getLastRow() === 0) sheet.appendRow(SHEET_HEADER);
+  return SpreadsheetApp.openById(spreadsheetId);
+}
+
+/** Returns the named tab, creating it with its header row if needed. */
+function getOrCreateSheetNamed_(name, header) {
+  const spreadsheet = getSpreadsheet_();
+  let sheet = spreadsheet.getSheetByName(name);
+  if (!sheet) sheet = spreadsheet.insertSheet(name);
+  if (sheet.getLastRow() === 0) sheet.appendRow(header);
   return sheet;
 }
 

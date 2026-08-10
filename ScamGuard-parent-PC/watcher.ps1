@@ -107,15 +107,6 @@ function Read-ScamGuardConfig {
         $settings[$line.Substring(0, $eq).Trim()] = $line.Substring($eq + 1).Trim()
     }
     if (-not $settings.ContainsKey("ENDPOINT_URL")) {
-        # Be forgiving about a common mistake: a config.ini that is just the
-        # bare /exec URL on a line, with no "ENDPOINT_URL=" label. Accept the
-        # first http(s) line as the endpoint.
-        foreach ($rawLine in @(Get-Content -LiteralPath $configPath)) {
-            $line = ("" + $rawLine).Trim()
-            if ($line -match "^https?://\S+") { $settings["ENDPOINT_URL"] = $line; break }
-        }
-    }
-    if (-not $settings.ContainsKey("ENDPOINT_URL")) {
         throw "ENDPOINT_URL is missing from config.ini."
     }
     if ([string]::IsNullOrWhiteSpace($settings["ENDPOINT_URL"])) {

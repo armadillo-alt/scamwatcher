@@ -103,6 +103,12 @@ if (pollSeconds < 0)
 if (pollSeconds > 0 and pollSeconds < 5)
     pollSeconds := 5          ; floor: faster than this only burns the quota
 
+; A PC upgraded with this file but not with check-verdicts.ps1 would launch a
+; PowerShell that finds nothing, every POLL_SECONDS, for ever. Stay quiet
+; instead; the red key still works exactly as it always did.
+if (pollSeconds > 0 and not FileExist(A_ScriptDir "\check-verdicts.ps1"))
+    pollSeconds := 0
+
 if (pollSeconds > 0) {
     ; Two separate timers on purpose. SetTimer is keyed on the function, so
     ; re-using PollForVerdicts for the startup check would turn the repeating

@@ -39,6 +39,20 @@ You come out of it with two URLs:
 | `https://script.google.com/macros/s/…/exec` | **secret** | `capture/config.ini` on the parent's PC only |
 | `https://docs.google.com/spreadsheets/d/e/…/pub?output=csv` | public by design | ScamGuard Settings on your phone |
 
+### Build the client's USB bundle before you go
+
+From the repo root, with the `/exec` URL from step 1:
+
+```
+.\scripts\make-client-bundle.ps1 -Endpoint "https://script.google.com/macros/s/AKfy.../exec" -DeviceName "Mom's PC" -SecretKey "your-shared-key"
+```
+
+It writes a ready folder to your Desktop with `config.ini` already filled in, so
+at the client PC you only double-click `install.bat` — no retyping a long URL.
+The script refuses to build inside this repo on purpose: a filled-in `config.ini`
+holds your `/exec` URL, and a stray copy inside a git folder is exactly how that
+URL once got committed to a public repo. Copy the folder to a USB stick.
+
 ## Step 2 — Parent's PC (~10 min, next visit)
 
 Follow **[capture/SETUP.md](capture/SETUP.md)**: red sticker on **PrintScreen**,

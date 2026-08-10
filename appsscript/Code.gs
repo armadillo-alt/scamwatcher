@@ -40,10 +40,20 @@
 // save and redeploy (Deploy -> Manage deployments -> Edit -> New version),
 // otherwise the live web app keeps running the old code.
 
-// Shared secret. If non-empty, every request must carry the identical value
-// in its "key" field or it is rejected. Strongly recommended: put a long
-// random string here and the same string in the parent PC's config.ini.
-const SECRET_KEY = "0bc9f033907149c5ad761ba282fb4869501e7ce79c3f4d4aabe65096650b2467";
+// Shared secret. If set, every request must carry the identical value in its
+// "key" field or it is rejected.
+//
+// PUT THE KEY IN SCRIPT PROPERTIES, NOT HERE:
+//   Project Settings -> Script properties -> Add script property
+//   Property: SECRET_KEY     Value: <your long random string>
+// Then paste the same string into the client PC's config.ini.
+//
+// Why: this file lives in a public git repository. A key typed on the line
+// below WILL eventually be committed by accident (it happened twice during
+// development). A Script Property is stored in your Google account only, and
+// survives re-pasting this code. The constant below stays empty on purpose;
+// it exists only as a fallback for throwaway setups.
+const SECRET_KEY = "";
 
 // Where the notification email goes. Leave empty to send it to the Google
 // account that deployed this script (Session.getEffectiveUser()).
@@ -97,7 +107,10 @@ function doGet(e) {
   return jsonOutput_({
     ok: true,
     service: "scamguard",
-    time: new Date().toISOString()
+    time: new Date().toISOString(),
+    // Reports WHETHER a key is required, never the key itself. Lets you verify
+    // that a redeploy took effect without posting a junk row to the sheet.
+    keyRequired: effectiveSecretKey_() !== ""
   });
 }
 
@@ -134,8 +147,9 @@ function doPost(e) {
  */
 function handleCapture_(payload) {
   // --- 1. Shared key (401-style refusal; the HTTP status is still 200) ---
-  if (SECRET_KEY) {
-    if (typeof payload.key !== "string" || payload.key !== SECRET_KEY) {
+  const secret = effectiveSecretKey_();
+  if (secret) {
+    if (typeof payload.key !== "string" || payload.key !== secret) {
       return { ok: false, error: "Wrong or missing key." };
     }
   }
@@ -217,6 +231,21 @@ function handleCapture_(payload) {
 }
 
 // ============================== HELPERS =====================================
+
+/**
+ * The shared key actually in force: the SECRET_KEY Script Property if present,
+ * otherwise the (normally empty) constant above. Keeping the real value in
+ * Script Properties means it never has to appear in this file.
+ */
+function effectiveSecretKey_() {
+  try {
+    const fromProps = PropertiesService.getScriptProperties().getProperty("SECRET_KEY");
+    if (fromProps) return String(fromProps).trim();
+  } catch (propsErr) {
+    // Properties unavailable for some reason; fall back to the constant.
+  }
+  return SECRET_KEY;
+}
 
 /** Wraps a plain object as a JSON HTTP response. */
 function jsonOutput_(body) {
@@ -402,7 +431,7 @@ const TEST_PNG_BASE64 =
  */
 function TEST_endToEnd() {
   const result = handleCapture_({
-    key: SECRET_KEY, // always matches whatever CONFIG says, even if empty
+    key: effectiveSecretKey_(), // always matches the key actually in force
     device: "Editor test",
     capturedAt: new Date().toISOString(),
     format: "png",

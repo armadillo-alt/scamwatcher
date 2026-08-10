@@ -36,5 +36,9 @@ blocking the script - install.bat handles Windows Defender automatically, but
 a third-party antivirus (Norton, McAfee, etc.) needs C:\ScamGuard added as an
 exclusion by hand.
 
+TO REMOVE IT (e.g. after testing on your own PC): double-click uninstall.bat.
+It stops the listener, removes the Defender exclusion and the logon shortcut,
+and deletes C:\ScamGuard. (AutoHotkey is left installed.)
+
 Nothing here records in the background. The screen is captured only at the
 moment the key is pressed. You can read every line of capture-and-send.ps1.

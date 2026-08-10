@@ -43,7 +43,7 @@
 // Shared secret. If non-empty, every request must carry the identical value
 // in its "key" field or it is rejected. Strongly recommended: put a long
 // random string here and the same string in the parent PC's config.ini.
-const SECRET_KEY = "";
+const SECRET_KEY = "0bc9f033907149c5ad761ba282fb4869501e7ce79c3f4d4aabe65096650b2467";
 
 // Where the notification email goes. Leave empty to send it to the Google
 // account that deployed this script (Session.getEffectiveUser()).

@@ -26,6 +26,10 @@ param(
     # Shared secret, if you set SECRET_KEY in Code.gs. Strongly recommended.
     [string]$SecretKey = "",
 
+    # Which key sends a screenshot. Default PrintScreen; use e.g. F12,
+    # ScrollLock, Pause or "^!s" (Ctrl+Alt+S) on keyboards without PrintScreen.
+    [string]$Hotkey = "PrintScreen",
+
     # Where to build. Default: Desktop\ScamGuard-<device>.
     [string]$OutputDir = ""
 )
@@ -56,7 +60,7 @@ if ($fullOut.StartsWith([IO.Path]::GetFullPath($repoRoot), [StringComparison]::O
 New-Item -ItemType Directory -Path $fullOut -Force | Out-Null
 
 $files = @(
-    "install.bat", "uninstall.bat", "READ-ME-FIRST.txt",
+    "install.bat", "uninstall.bat", "setup-autohotkey.ps1", "READ-ME-FIRST.txt",
     "scamguard-key.ahk", "capture-and-send.ps1", "watcher.ps1", "SETUP.md"
 )
 foreach ($f in $files) {
@@ -72,7 +76,8 @@ $cfgLines = @(
     "# This file contains a private URL. Do not share it or copy it into a git folder.",
     "ENDPOINT_URL=$Endpoint",
     "DEVICE_NAME=$DeviceName",
-    "SECRET_KEY=$SecretKey"
+    "SECRET_KEY=$SecretKey",
+    "HOTKEY=$Hotkey"
 )
 $cfgPath = Join-Path $fullOut "config.ini"
 [IO.File]::WriteAllText($cfgPath, ($cfgLines -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
@@ -80,6 +85,7 @@ $cfgPath = Join-Path $fullOut "config.ini"
 Write-Host ""
 Write-Host "  Bundle ready: $fullOut" -ForegroundColor Green
 Write-Host "  Device name : $DeviceName"
+Write-Host "  Hotkey      : $Hotkey   <- put the red sticker on this key"
 if ($SecretKey) { Write-Host "  Secret key  : set" } else { Write-Host "  Secret key  : (none - consider setting one in Code.gs)" }
 Write-Host ""
 Write-Host "  Next: copy that folder to a USB stick, then on the client PC"

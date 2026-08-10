@@ -37,6 +37,8 @@ copy /y "%SRC%scamguard-key.ahk"     "%DEST%\" >nul
 copy /y "%SRC%capture-and-send.ps1"  "%DEST%\" >nul
 if exist "%SRC%watcher.ps1"          copy /y "%SRC%watcher.ps1" "%DEST%\" >nul
 if exist "%SRC%uninstall.bat"        copy /y "%SRC%uninstall.bat" "%DEST%\" >nul
+if exist "%SRC%install.bat"          copy /y "%SRC%install.bat" "%DEST%\" >nul
+if exist "%SRC%setup-autohotkey.ps1" copy /y "%SRC%setup-autohotkey.ps1" "%DEST%\" >nul
 echo   [1/4] Copied the scripts.
 
 REM --- 2) config.ini ----------------------------------------------------------

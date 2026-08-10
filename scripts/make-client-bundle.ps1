@@ -30,6 +30,10 @@ param(
     # ScrollLock, Pause or "^!s" (Ctrl+Alt+S) on keyboards without PrintScreen.
     [string]$Hotkey = "PrintScreen",
 
+    # How often the PC asks whether you have flagged something (seconds).
+    # 0 turns the on-screen scam warning off entirely.
+    [int]$PollSeconds = 45,
+
     # Where to build. Default: Desktop\ScamGuard-<device>.
     [string]$OutputDir = ""
 )
@@ -61,7 +65,8 @@ New-Item -ItemType Directory -Path $fullOut -Force | Out-Null
 
 $files = @(
     "install.bat", "uninstall.bat", "setup-autohotkey.ps1", "READ-ME-FIRST.txt",
-    "scamguard-key.ahk", "capture-and-send.ps1", "watcher.ps1", "SETUP.md"
+    "scamguard-key.ahk", "capture-and-send.ps1", "check-verdicts.ps1",
+    "watcher.ps1", "SETUP.md"
 )
 foreach ($f in $files) {
     Copy-Item (Join-Path $captureDir $f) (Join-Path $fullOut $f) -Force
@@ -77,7 +82,8 @@ $cfgLines = @(
     "ENDPOINT_URL=$Endpoint",
     "DEVICE_NAME=$DeviceName",
     "SECRET_KEY=$SecretKey",
-    "HOTKEY=$Hotkey"
+    "HOTKEY=$Hotkey",
+    "POLL_SECONDS=$PollSeconds"
 )
 $cfgPath = Join-Path $fullOut "config.ini"
 [IO.File]::WriteAllText($cfgPath, ($cfgLines -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
@@ -86,6 +92,11 @@ Write-Host ""
 Write-Host "  Bundle ready: $fullOut" -ForegroundColor Green
 Write-Host "  Device name : $DeviceName"
 Write-Host "  Hotkey      : $Hotkey   <- put the red sticker on this key"
+if ($PollSeconds -gt 0) {
+    Write-Host "  Scam warning: on, checks every $PollSeconds seconds"
+} else {
+    Write-Host "  Scam warning: OFF (PollSeconds = 0)"
+}
 if ($SecretKey) { Write-Host "  Secret key  : set" } else { Write-Host "  Secret key  : (none - consider setting one in Code.gs)" }
 Write-Host ""
 Write-Host "  Next: copy that folder to a USB stick, then on the client PC"

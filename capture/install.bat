@@ -35,6 +35,7 @@ REM --- 1) Folder + scripts ----------------------------------------------------
 if not exist "%DEST%" mkdir "%DEST%"
 copy /y "%SRC%scamguard-key.ahk"     "%DEST%\" >nul
 copy /y "%SRC%capture-and-send.ps1"  "%DEST%\" >nul
+if exist "%SRC%check-verdicts.ps1"   copy /y "%SRC%check-verdicts.ps1" "%DEST%\" >nul
 if exist "%SRC%watcher.ps1"          copy /y "%SRC%watcher.ps1" "%DEST%\" >nul
 if exist "%SRC%uninstall.bat"        copy /y "%SRC%uninstall.bat" "%DEST%\" >nul
 if exist "%SRC%install.bat"          copy /y "%SRC%install.bat" "%DEST%\" >nul

@@ -12,10 +12,25 @@ about 15 minutes at the parent's PC (or over remote support).
 
 | File | Purpose |
 |---|---|
+| `install.bat` | **the easy path** — does steps C–E for you (see below) |
 | `scamguard-key.ahk` | listens for the red key, shows the gentle messages |
 | `capture-and-send.ps1` | captures the screen, sends it, queues it when offline |
 | `watcher.ps1` | alternative that needs no AutoHotkey (step F) |
 | `config.example.ini` | template for `config.ini` |
+
+## Fast path: one-file install
+
+If you just want it done, copy this folder to the parent's PC (USB stick, or
+download the `ScamGuard-parent-PC.zip` bundle) and **double-click `install.bat`**.
+It asks for administrator rights, then creates `C:\ScamGuard`, writes `config.ini`
+(it will prompt for your `/exec` URL), adds the antivirus exclusion, sets ScamGuard
+to start at logon, installs AutoHotkey if needed, and launches it. Then do step A
+(the red sticker + the sentence to your parent) and test.
+
+To rebuild the ZIP from this folder: in PowerShell, `Compress-Archive -Path
+capture\install.bat,capture\READ-ME-FIRST.txt,capture\scamguard-key.ahk,capture\capture-and-send.ps1,capture\watcher.ps1,capture\config.example.ini,capture\SETUP.md -DestinationPath ScamGuard-parent-PC.zip -Force`.
+
+The steps below are the same thing done by hand, if you'd rather.
 
 ## A) Put the red sticker on the key
 

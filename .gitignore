@@ -34,3 +34,6 @@ capture/config.ini
 
 # Local e2e mock-backend state
 .mock-data/
+
+# Built distributable bundle (reproducible from capture/ — see capture/SETUP.md)
+ScamGuard-parent-PC.zip

@@ -25,7 +25,7 @@ export default function Dashboard() {
     refresh,
   } = shots;
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [requestedId, setSelectedId] = useState<string | null>(null);
   const [panelId, setPanelId] = useState<string | null>(null);
 
   const panelItem = useMemo(
@@ -33,16 +33,13 @@ export default function Dashboard() {
     [items, panelId],
   );
 
-  // Keep the keyboard selection pointing at something visible.
-  useEffect(() => {
-    if (filtered.length === 0) {
-      setSelectedId(null);
-      return;
-    }
-    if (!filtered.some((i) => i.id === selectedId)) {
-      setSelectedId(filtered[0].id);
-    }
-  }, [filtered, selectedId]);
+  // The keyboard selection always points at something visible: the requested
+  // item while it is in the current list, otherwise the first visible one.
+  const selectedId = useMemo(() => {
+    if (filtered.length === 0) return null;
+    if (requestedId !== null && filtered.some((i) => i.id === requestedId)) return requestedId;
+    return filtered[0].id;
+  }, [filtered, requestedId]);
 
   /** The item to land on after a verdict removes `id` from a triage list. */
   const nextAfter = useCallback(

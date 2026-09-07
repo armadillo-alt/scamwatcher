@@ -27,10 +27,16 @@ export interface Filters {
  * merge with locally-stored reviews, expose triage state and actions.
  */
 export function useScreenshots() {
-  const settings = useMemo(loadSettings, []);
+  const settings = useMemo(() => loadSettings(), []);
   const [rows, setRows] = useState<ScreenshotRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  // Which reload has finished. "Loading" is simply "the current reload hasn't",
+  // so a refresh shows the loading state at once without an effect setting it.
+  const [loadedNonce, setLoadedNonce] = useState(-1);
+  // When the rows last arrived. Time-based metrics ("this week") are measured
+  // from here rather than from Date.now() during render, so render stays pure
+  // and the numbers do not drift while the page sits open.
+  const [loadedAt, setLoadedAt] = useState(0);
   const [reviews, setReviews] = useState<Record<string, Review>>(loadReviews);
   const [ocrTexts, setOcrTexts] = useState<Record<string, string>>({});
   const [ocrBusy, setOcrBusy] = useState(0);
@@ -39,12 +45,12 @@ export function useScreenshots() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     fetchRows(settings)
       .then((r) => {
         if (cancelled) return;
         setRows(r);
         setSourceError(null);
+        setLoadedAt(Date.now());
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -52,12 +58,13 @@ export function useScreenshots() {
         setSourceError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadedNonce(reloadNonce);
       });
     return () => {
       cancelled = true;
     };
   }, [settings, reloadNonce]);
+  const loading = loadedNonce !== reloadNonce;
 
   useEffect(() => {
     if (!settings.ocrEnabled) return;
@@ -196,7 +203,7 @@ export function useScreenshots() {
 
   const metrics = useMemo(() => {
     const needs = items.filter((i) => !i.review?.verdict);
-    const weekAgo = Date.now() - 7 * 86_400_000;
+    const weekAgo = loadedAt - 7 * 86_400_000;
     return {
       total: items.length,
       needsReview: needs.length,
@@ -212,7 +219,7 @@ export function useScreenshots() {
             )
           : null,
     };
-  }, [items]);
+  }, [items, loadedAt]);
 
   const [filters, setFilters] = useState<Filters>({
     status: "needs",

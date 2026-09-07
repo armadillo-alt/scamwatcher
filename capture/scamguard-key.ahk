@@ -27,6 +27,13 @@
 ;     HOTKEY=^!s            (Ctrl+Alt+S:  ^=Ctrl  !=Alt  +=Shift  #=Win)
 ; Pick something the person will not press by accident.
 ;
+; WHICH LANGUAGE? Set LANGUAGE=af in config.ini for Afrikaans; anything else
+; (or nothing) means English. Only the words the parent sees change - the
+; tooltips, the red warning's heading, note and button, and the standard
+; warning used when the caregiver typed no guidance. The caregiver's own
+; guidance is shown exactly as typed, whatever the setting. Setup-time
+; errors stay in English: they are for the caregiver, not the parent.
+;
 ; The real work happens in two PowerShell scripts in this same folder:
 ;
 ;   capture-and-send.ps1  run on every key press and waited for; its exit
@@ -56,11 +63,55 @@ isSending := false            ; guard: ignore presses while a send is running
 warningGui := ""              ; the red warning window while one is on screen
 alertFile := EnvGet("LOCALAPPDATA") "\ScamGuard\alert.txt"
 
-; What the parent sees when the caregiver marked something as a scam but did
-; not type anything. It has to work on its own, so it says what to do rather
-; than what happened.
-DEFAULT_WARNING := "Do not click anything on that screen, and do not phone any number on it. "
-    . "Close it and wait - I am contacting you now."
+; --- Every word the parent can see, in each supported language --------------
+; "defaultWarning" is what the parent sees when the caregiver marked something
+; as a scam but did not type anything. It has to work on its own, so it says
+; what to do rather than what happened. {1} is filled in by T() below.
+; The Afrikaans uses the respectful "u": the default words address an older
+; person on behalf of the whole family, not one child speaking to one parent.
+STRINGS := Map(
+    "en", Map(
+        "sending",        "Sending your screenshot...",
+        "sent",           "Sent. Help is on the way.",
+        "queued",         "No internet right now. Saved - it will send automatically next time.",
+        "failed",         "Something went wrong. The screenshot was not sent.",
+        "trayTip",        "ScamGuard - press {1} to send a screenshot for help",
+        "defaultWarning", "Do not click anything on that screen, and do not phone any number on it. Close it and wait - I am contacting you now.",
+        "title",          "Warning from your family",
+        "heading",        "STOP - this is a scam",
+        "note",           "Sent by your family just now.",
+        "noteMany",       "Sent by your family just now. This is the newest of {1} messages.",
+        "button",         "OK, I understand"),
+    "af", Map(
+        "sending",        "Stuur u skermskoot...",
+        "sent",           "Gestuur. Hulp is op pad.",
+        "queued",         "Geen internet op die oomblik nie. Gestoor - dit word volgende keer vanself gestuur.",
+        "failed",         "Iets het skeefgeloop. Die skermskoot is nie gestuur nie.",
+        "trayTip",        "ScamGuard - druk {1} om 'n skermskoot vir hulp te stuur",
+        "defaultWarning", "Moenie op enigiets op daardie skerm klik nie, en moenie enige nommer daarop bel nie. Maak dit toe en wag - ek kontak u nou.",
+        "title",          "Waarskuwing van u familie",
+        "heading",        "STOP - dit is 'n bedrogspul",
+        "note",           "Sopas deur u familie gestuur.",
+        "noteMany",       "Sopas deur u familie gestuur. Dit is die nuutste van {1} boodskappe.",
+        "button",         "Goed, ek verstaan"))
+
+; LANGUAGE=af (or afrikaans) selects Afrikaans; anything else is English, so
+; a typo can never leave the parent with no words at all.
+msgLang := StrLower(Trim(ReadConfigValue("LANGUAGE", "en")))
+if (msgLang = "af" or msgLang = "afrikaans")
+    msgLang := "af"
+else
+    msgLang := "en"
+
+; One parent-facing string, in the configured language. Falls back to the
+; English entry if a key is ever missing from a translation.
+T(key, arg := "")
+{
+    global STRINGS, msgLang
+    table := STRINGS[msgLang]
+    text := table.Has(key) ? table[key] : STRINGS["en"][key]
+    return StrReplace(text, "{1}", arg)
+}
 
 ; --- Which key are we listening for? ---------------------------------------
 hotkeyName := Trim(ReadConfigValue("HOTKEY", "PrintScreen"))
@@ -82,7 +133,7 @@ try {
 }
 
 ; Hovering the tray icon shows which key is active - handy when checking a setup.
-A_IconTip := "ScamGuard - press " hotkeyName " to send a screenshot for help"
+A_IconTip := T("trayTip", hotkeyName)
 
 ; --- How often do we ask whether the caregiver has decided? -----------------
 ; POLL_SECONDS=0 (or a nonsense value) switches the warning half off entirely.
@@ -127,7 +178,7 @@ DoCapture(ThisHotkey)
     isSending := true
 
     ; Immediate feedback, before the capture even starts.
-    ToolTip("Sending your screenshot...")
+    ToolTip(T("sending"))
 
     ; Run the capture script hidden and wait for it. Per the AHK v2 docs,
     ; RunWait's RETURN VALUE is the exit code; the fourth parameter would
@@ -141,11 +192,11 @@ DoCapture(ThisHotkey)
 
     ; Gentle result message for the person at the PC.
     if (exitCode = 0)
-        ToolTip("Sent. Help is on the way.")
+        ToolTip(T("sent"))
     else if (exitCode = 2)
-        ToolTip("No internet right now. Saved - it will send automatically next time.")
+        ToolTip(T("queued"))
     else
-        ToolTip("Something went wrong. The screenshot was not sent.")
+        ToolTip(T("failed"))
 
     isSending := false
     SetTimer(HideTip, -3000)  ; clear the message after 3 seconds
@@ -269,30 +320,30 @@ CheckForAlert()
 ; another window - but always closable, by the button or by Escape.
 ShowScamWarning(message, total := 1)
 {
-    global warningGui, DEFAULT_WARNING
+    global warningGui
 
     if (message = "")
-        message := DEFAULT_WARNING
+        message := T("defaultWarning")
     ; The window grows to fit whatever the caregiver wrote, but not without
     ; limit - it still has to fit on a small laptop screen at 125% scaling.
     ; 320 characters is about seven lines, far more than anyone types here.
     if (StrLen(message) > 320)
         message := SubStr(message, 1, 317) "..."
 
-    note := "Sent by your family just now."
+    note := T("note")
     if (total > 1)
-        note := "Sent by your family just now. This is the newest of " total " messages."
+        note := T("noteMany", total)
 
     ; Never stack warnings: replace whatever is on screen so the words she
     ; reads are the newest ones.
     CloseWarning()
 
     try {
-        g := Gui("+AlwaysOnTop -SysMenu -MinimizeBox -MaximizeBox -Resize", "Warning from your family")
+        g := Gui("+AlwaysOnTop -SysMenu -MinimizeBox -MaximizeBox -Resize", T("title"))
         g.BackColor := "9E2B25"                 ; the ScamGuard warning red
 
         g.SetFont("s42 Bold cFFFFFF", "Segoe UI")
-        g.AddText("x40 y26 w740 h68 Center BackgroundTrans", "STOP - this is a scam")
+        g.AddText("x40 y26 w740 h68 Center BackgroundTrans", T("heading"))
 
         g.SetFont("s20 Norm cFFFFFF", "Segoe UI")
         g.AddText("x40 y98 w740 Center BackgroundTrans", message)
@@ -317,7 +368,7 @@ ShowScamWarning(message, total := 1)
             windowH := buttonY + 78 + 46
 
         g.SetFont("s24 Bold c000000", "Segoe UI")
-        button := g.AddButton("x230 y" buttonY " w360 h78 Default", "OK, I understand")
+        button := g.AddButton("x230 y" buttonY " w360 h78 Default", T("button"))
         button.OnEvent("Click", CloseWarning)
 
         g.OnEvent("Escape", CloseWarning)       ; it must never trap her
@@ -333,7 +384,7 @@ ShowScamWarning(message, total := 1)
         ; still has to reach her, so fall back to something that cannot fail.
         warningGui := ""
         try
-            MsgBox("STOP - this is a scam`n`n" message "`n`n" note, "Warning from your family", "Iconx 4096")
+            MsgBox(T("heading") "`n`n" message "`n`n" note, T("title"), "Iconx 4096")
     }
 }
 

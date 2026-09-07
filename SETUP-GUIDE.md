@@ -53,6 +53,8 @@ From the repo root, with the `/exec` URL from step 1:
 .\scripts\make-client-bundle.ps1 -Endpoint "https://script.google.com/macros/s/AKfy.../exec" -DeviceName "Mom's PC" -SecretKey "your-shared-key"
 ```
 
+Add `-Language af` if your parent reads Afrikaans: every message they see on the
+PC (the "Sent" tooltip, the red warning's heading and button) switches language.
 It writes a ready folder to your Desktop with `config.ini` already filled in, so
 at the client PC you only double-click `install.bat` — no retyping a long URL.
 (The shared key goes in Apps Script's Script Properties as `SECRET_KEY`, never in

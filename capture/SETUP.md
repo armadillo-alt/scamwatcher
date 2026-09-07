@@ -29,8 +29,9 @@ about 15 minutes at the parent's PC (or over remote support).
 If you just want it done, copy this folder to the parent's PC (USB stick, or
 download the `ScamGuard-parent-PC.zip` bundle) and **double-click `install.bat`**.
 It asks for administrator rights, then creates `C:\ScamGuard`, writes `config.ini`
-(it will prompt for your `/exec` URL), adds the antivirus exclusion, sets ScamGuard
-to start at logon, installs AutoHotkey if needed, and launches it. Then do step A
+(it will prompt for your `/exec` URL, the key, and English or Afrikaans for the
+messages your parent sees), adds the antivirus exclusion, sets ScamGuard to start
+at logon, installs AutoHotkey if needed, and launches it. Then do step A
 (the red sticker + the sentence to your parent) and test.
 
 Better still, build the bundle at home with `config.ini` already filled in, so
@@ -81,7 +82,11 @@ AutoHotkey is the small free tool that lets us remap the key.
    - optionally change `HOTKEY` (laptops often lack PrintScreen - `F12`,
      `Pause` or `^!s` for Ctrl+Alt+S all work; put the sticker on that key),
    - optionally change `POLL_SECONDS` (how often the PC checks for your
-     verdict; default 45, `0` switches the on-screen warning off).
+     verdict; default 45, `0` switches the on-screen warning off),
+   - set `LANGUAGE=af` if your parent reads Afrikaans. It changes every word
+     they see on this PC - the "Sending..."/"Sent" messages and the red
+     warning's heading, note and button. Your own guidance sentence is shown
+     exactly as you typed it, so write that in their language too.
 4. `config.ini` stays on that PC only. The URL in it is a capability:
    anyone who has it can post into your sheet. It is gitignored in this
    repo on purpose - never commit or share it.
@@ -126,7 +131,8 @@ app -> Settings -> **Warning their PC** (SETUP-GUIDE.md, step 3).
 2. Tap **Mark as scam**. The toast should say "Warning sent to Mom's PC".
 3. Within about a minute (`POLL_SECONDS`) the parent's screen shows a large
    red window with your sentence and a beep. **Escape** closes it. If you
-   saved no guidance, a firm standard warning is shown instead.
+   saved no guidance, a firm standard warning is shown instead - in English
+   or, with `LANGUAGE=af`, in Afrikaans ("STOP - dit is 'n bedrogspul").
 4. Mark something **safe**: nothing appears on their screen. That is on
    purpose - a reassuring popup every time would teach them to click
    warnings away without reading, which is exactly what a scammer needs.

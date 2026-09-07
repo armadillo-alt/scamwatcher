@@ -16,7 +16,9 @@ TO INSTALL - just do this:
        the ZIP somewhere like the Desktop.
     2. Double-click  install.bat
     3. Click "Yes" when Windows asks for administrator rights.
-    4. When it asks, paste your /exec URL and give the PC a name (e.g. Mom's PC).
+    4. When it asks, paste your /exec URL, give the PC a name (e.g. Mom's PC)
+       and choose the language your parent reads: en (English) or af
+       (Afrikaans). That sets every message they see on this PC.
 
 That's it. install.bat copies everything to C:\ScamGuard, adds the antivirus
 exclusion, sets it to start every time the PC turns on, and launches it.

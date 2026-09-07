@@ -23,7 +23,7 @@ param(
     # How this PC appears in the dashboard, e.g. "Mom's PC".
     [Parameter(Mandatory = $true)][string]$DeviceName,
 
-    # Shared secret, if you set SECRET_KEY in Code.gs. Strongly recommended.
+    # Shared secret - the SECRET_KEY Script Property in Apps Script. Strongly recommended.
     [string]$SecretKey = "",
 
     # Which key sends a screenshot. Default PrintScreen; use e.g. F12,
@@ -33,6 +33,10 @@ param(
     # How often the PC asks whether you have flagged something (seconds).
     # 0 turns the on-screen scam warning off entirely.
     [int]$PollSeconds = 45,
+
+    # Language of the words the parent sees on the PC (tooltips and the red
+    # warning): "en" or "af" (Afrikaans). Your own guidance is shown as typed.
+    [ValidateSet("en", "af")][string]$Language = "en",
 
     # Where to build. Default: Desktop\ScamGuard-<device>.
     [string]$OutputDir = ""
@@ -83,7 +87,8 @@ $cfgLines = @(
     "DEVICE_NAME=$DeviceName",
     "SECRET_KEY=$SecretKey",
     "HOTKEY=$Hotkey",
-    "POLL_SECONDS=$PollSeconds"
+    "POLL_SECONDS=$PollSeconds",
+    "LANGUAGE=$Language"
 )
 $cfgPath = Join-Path $fullOut "config.ini"
 [IO.File]::WriteAllText($cfgPath, ($cfgLines -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
@@ -92,12 +97,13 @@ Write-Host ""
 Write-Host "  Bundle ready: $fullOut" -ForegroundColor Green
 Write-Host "  Device name : $DeviceName"
 Write-Host "  Hotkey      : $Hotkey   <- put the red sticker on this key"
+Write-Host "  Language    : $(if ($Language -eq 'af') { 'Afrikaans' } else { 'English' })"
 if ($PollSeconds -gt 0) {
     Write-Host "  Scam warning: on, checks every $PollSeconds seconds"
 } else {
     Write-Host "  Scam warning: OFF (PollSeconds = 0)"
 }
-if ($SecretKey) { Write-Host "  Secret key  : set" } else { Write-Host "  Secret key  : (none - consider setting one in Code.gs)" }
+if ($SecretKey) { Write-Host "  Secret key  : set" } else { Write-Host "  Secret key  : (none - consider setting the SECRET_KEY Script Property)" }
 Write-Host ""
 Write-Host "  Next: copy that folder to a USB stick, then on the client PC"
 Write-Host "        double-click install.bat and approve the admin prompt."

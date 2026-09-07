@@ -42,9 +42,13 @@ what still needs a human hand, and where the next hours of work should go.
   to Apps Script Script Properties. Then the **verdict return path**: marking a scam in the
   dashboard posts to Apps Script, the parent PC polls every `POLL_SECONDS` and shows a
   full-screen red warning in the caregiver's own words (§4 item 6).
-- **2026-09-07 — housekeeping.** Docs brought in line with the above, stray root files
-  removed, security checklist updated. Verified on a fresh clone: 15/15 tests, clean
-  `tsc` + build, lint 0 errors, no secrets anywhere in `origin/main` history.
+- **2026-09-07 — housekeeping, then Afrikaans.** Docs brought in line with the above,
+  stray root files removed, security checklist updated. Verified on a fresh clone: 15/15
+  tests, clean `tsc` + build, lint 0 errors, no secrets anywhere in `origin/main` history.
+  Then `LANGUAGE=en|af` in `config.ini`: every parent-facing string in
+  `scamguard-key.ahk` moved into a two-language table (`STRINGS` + `T()`), offered by
+  `install.bat` and `make-client-bundle.ps1 -Language`. Written on Linux, so
+  `AutoHotkey.exe /validate` still has to be run on a Windows machine before shipping.
 
 ## 2. SECURITY — actions only Dante can do (do these first)
 
@@ -261,10 +265,11 @@ Already done since this list was first written: the capture side and PWA (2026-0
 the one-file installer and pre-filled bundle (2026-08-10), and the verdict return path that
 warns the parent's PC (2026-08-10). What's left:
 
-1. **Capture-side polish.** An Afrikaans option for the parent-facing text (tooltips and
-   the red warning — a large share of the target demographic); a macro-keypad variant (any
-   R150–R300 programmable pad mapped to the `HOTKEY`); code-signing the PowerShell scripts
-   so the antivirus exclusion becomes optional.
+1. **Capture-side polish.** ~~An Afrikaans option for the parent-facing text~~ (done
+   2026-09-07 — validate the .ahk on Windows and have a native speaker read the eleven
+   strings once); a macro-keypad variant (any R150–R300 programmable pad mapped to the
+   `HOTKEY`); code-signing the PowerShell scripts so the antivirus exclusion becomes
+   optional.
 2. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
    All are **devDependencies** affecting only the local dev server and test runner — none ship
    in the built static site, so production risk is nil. The fix is a major bump (vite 5→8,
@@ -325,7 +330,12 @@ warns the parent's PC (2026-08-10). What's left:
   warnings. `POLL_SECONDS=0` in `config.ini` switches the return path off, and the .ahk
   also stays quiet if `check-verdicts.ps1` is missing next to it.
 - Validate `scamguard-key.ahk` with `AutoHotkey.exe /validate` after every edit — a syntax
-  error there breaks the red key itself, not just the warning.
+  error there breaks the red key itself, not just the warning. **The 2026-09-07 language
+  edit has not yet been validated** (no Windows in that session); do it before shipping.
+- Parent-facing words live only in the `STRINGS` table at the top of `scamguard-key.ahk`;
+  add a language by adding a Map there and accepting its code where `msgLang` is set.
+  Keep the file ASCII (the Afrikaans deliberately avoids diacritics) so it never depends
+  on how AutoHotkey guesses the file's encoding. Caregiver-facing setup errors stay English.
 
 ## 10. Where everything is
 

@@ -66,11 +66,17 @@ if exist "%SRC%config.ini" (
   set "HKEY="
   set /p "HKEY=        Hotkey [PrintScreen]: "
   if "!HKEY!"=="" set "HKEY=PrintScreen"
+  echo.
+  echo         Language of the messages your parent sees:  en = English   af = Afrikaans
+  set "LANGCODE="
+  set /p "LANGCODE=        Language [en]: "
+  if "!LANGCODE!"=="" set "LANGCODE=en"
   >"%CFG%"  echo # ScamGuard config - created by install.bat. Keep this file private.
   >>"%CFG%" echo ENDPOINT_URL=!ENDPOINT!
   >>"%CFG%" echo DEVICE_NAME=!DEVNAME!
   >>"%CFG%" echo SECRET_KEY=!SKEY!
   >>"%CFG%" echo HOTKEY=!HKEY!
+  >>"%CFG%" echo LANGUAGE=!LANGCODE!
 )
 
 REM --- 3) Antivirus exclusion -------------------------------------------------

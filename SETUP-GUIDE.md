@@ -66,8 +66,9 @@ URL once got committed to a public repo. Copy the folder to a USB stick.
 ## Step 2 — Parent's PC (~10 min, next visit)
 
 Follow **[capture/SETUP.md](capture/SETUP.md)**: red sticker on **PrintScreen** (or
-whichever key you set as `HOTKEY`), install AutoHotkey v2, copy the scripts + your
-`config.ini` to `C:\ScamGuard`,
+whichever key you set as `HOTKEY` - a R150–R300 USB macro keypad programmed to F13
+makes a dedicated big red button, step H there), install AutoHotkey v2, copy the
+scripts + your `config.ini` to `C:\ScamGuard`,
 **add the antivirus exclusion for `C:\ScamGuard` (step C2 — don't skip it; a
 screen-capture-and-upload tool trips AV heuristics by design)**, add the startup
 shortcut, press the key once to test.

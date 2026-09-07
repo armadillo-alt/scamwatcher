@@ -22,6 +22,7 @@ about 15 minutes at the parent's PC (or over remote support).
 | `setup-autohotkey.ps1` | used by `install.bat` to find/install AutoHotkey v2 and register the startup entry |
 | `watcher.ps1` | alternative that needs no AutoHotkey (step F) |
 | `config.example.ini` | template for `config.ini` — every setting is explained in it |
+| *(optional hardware)* | a USB macro keypad as a dedicated big red button — step H |
 | `READ-ME-FIRST.txt` | the one-page version of this file, for the USB stick |
 
 ## Fast path: one-file install
@@ -176,12 +177,61 @@ screen dim is the confirmation), the bare red key on its own does nothing,
 and only screenshots taken while the watcher is running are sent. Offline
 queueing works exactly the same.
 
+## H) Optional: a dedicated big red button (macro keypad)
+
+A sticker on PrintScreen works, but a separate button that does nothing
+else is easier to explain, easier to find in a panic, and impossible to
+confuse with the rest of the keyboard. Any cheap USB **macro keypad**
+(also sold as "programmable mini keyboard", "custom keypad", "1-key /
+3-key macro pad") does the job. They cost roughly R150–R300 online and
+plug in next to the keyboard. Pick one that says its keys are
+**programmable and stored on the device** ("onboard memory", "no driver
+needed after setup") - then it works on the parent's PC without any extra
+software running there. If it has a red keycap, even better; otherwise
+the red sticker goes on the button.
+
+Program it **once, at home**, before you visit:
+
+1. Plug it into your own PC and open the programming tool it came with
+   (usually a small Windows program or a web page named on the box).
+2. Set the button to send the single key **F13**. No normal keyboard has
+   F13-F24, so nothing on the PC reacts to it and nobody can press it by
+   accident. If the tool cannot send F13, choose a combination no program
+   uses, e.g. **Ctrl+Alt+Shift+F12**.
+3. Save to the device, unplug, plug into the parent's PC.
+
+Then in `config.ini` on the parent's PC:
+
+```
+HOTKEY=F13
+```
+
+or, to keep the stickered PrintScreen key working as well:
+
+```
+HOTKEY=F13,PrintScreen
+```
+
+(For the Ctrl+Alt+Shift+F12 fallback: `HOTKEY=^!+F12`.) `install.bat`
+asks for this at install time; `make-client-bundle.ps1 -Hotkey "F13,PrintScreen"`
+bakes it into the bundle. Restart ScamGuard (or the PC) after editing
+`config.ini`; hover the green **H** tray icon to confirm it lists the key.
+
+A button that gets pressed and held sends the key over and over; ScamGuard
+ignores repeats for two seconds after a send finishes, so one long press is
+one screenshot.
+
+Test it exactly like step D: press the button, expect "Sending..." then
+"Sent". If nothing happens, the pad is probably sending something other
+than F13 - press it inside Notepad (nothing should appear for F13; a letter
+or symbol means it was programmed to that instead) and re-program it.
+
 ## G) Troubleshooting
 
 | What you see | What it means / what to do |
 |---|---|
 | Tooltip: "No internet right now. Saved..." | The PC is offline. The screenshot waits in `%LOCALAPPDATA%\ScamGuard\queue` and is sent automatically at the start of the next press. Watch that folder fill and then empty to confirm the queue works. |
-| Pressing the red key does nothing at all | AutoHotkey is not running. Look for the green **H** icon in the tray; if missing, double-click `scamguard-key.ahk` and re-check the Startup shortcut (step E). |
+| Pressing the red key does nothing at all | AutoHotkey is not running. Look for the green **H** icon in the tray; if missing, double-click `scamguard-key.ahk` and re-check the Startup shortcut (step E). With a macro keypad: hover the icon - it lists the active key(s); if the pad's key is not there, fix `HOTKEY` (step H). |
 | Tooltip: "Something went wrong" AND `error.log` mentions "malicious content" / a virus block | Antivirus is blocking the capture script. Add the `C:\ScamGuard` exclusion in **step C2**. This is the most common first-run failure. |
 | Tooltip: "Something went wrong" right after setup | Besides antivirus, check `config.ini`: is `SECRET_KEY` here the same as in `Code.gs`? A wrong key is now reported honestly ("not sent") instead of being queued forever - `error.log` will say "endpoint rejected the screenshot: Wrong or missing key." |
 | Tooltip: "Something went wrong..." every time | Open `%LOCALAPPDATA%\ScamGuard\error.log`. The usual causes: `config.ini` missing, or `ENDPOINT_URL` still the placeholder. |

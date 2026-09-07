@@ -25,7 +25,10 @@
 ;     HOTKEY=ScrollLock
 ;     HOTKEY=Pause
 ;     HOTKEY=^!s            (Ctrl+Alt+S:  ^=Ctrl  !=Alt  +=Shift  #=Win)
-; Pick something the person will not press by accident.
+;     HOTKEY=F13            a macro keypad / big red button programmed to F13
+;     HOTKEY=F13,PrintScreen   several keys, comma-separated - all of them work
+; Pick something the person will not press by accident. F13-F24 exist on no
+; normal keyboard, which makes them ideal for a dedicated button.
 ;
 ; WHICH LANGUAGE? Set LANGUAGE=af in config.ini for Afrikaans; anything else
 ; (or nothing) means English. Only the words the parent sees change - the
@@ -60,6 +63,7 @@
 #SingleInstance Force
 
 isSending := false            ; guard: ignore presses while a send is running
+lastSendDone := 0             ; tick when the last send finished (press debounce)
 warningGui := ""              ; the red warning window while one is on screen
 alertFile := EnvGet("LOCALAPPDATA") "\ScamGuard\alert.txt"
 
@@ -118,8 +122,20 @@ hotkeyName := Trim(ReadConfigValue("HOTKEY", "PrintScreen"))
 if (hotkeyName = "")
     hotkeyName := "PrintScreen"
 
+; HOTKEY may name several keys, comma-separated, so a big red macro button
+; (F13) and the stickered PrintScreen key can both work on the same PC.
+hotkeyList := []
+for name in StrSplit(hotkeyName, ",") {
+    name := Trim(name)
+    if (name != "")
+        hotkeyList.Push(name)
+}
+if (hotkeyList.Length = 0)
+    hotkeyList.Push("PrintScreen")
+
 try {
-    Hotkey(hotkeyName, DoCapture)
+    for name in hotkeyList
+        Hotkey(name, DoCapture)
 } catch Error as err {
     MsgBox("ScamGuard could not use the key '" hotkeyName "'.`n`n"
         . "Fix the HOTKEY line in config.ini, then start ScamGuard again.`n`n"
@@ -127,13 +143,17 @@ try {
         . "    HOTKEY=PrintScreen`n"
         . "    HOTKEY=F12`n"
         . "    HOTKEY=ScrollLock`n"
-        . "    HOTKEY=^!s        (Ctrl+Alt+S)`n`n"
+        . "    HOTKEY=^!s        (Ctrl+Alt+S)`n"
+        . "    HOTKEY=F13        (a macro keypad button)`n`n"
         . "Details: " err.Message, "ScamGuard", "Iconx")
     ExitApp()
 }
 
 ; Hovering the tray icon shows which key is active - handy when checking a setup.
-A_IconTip := T("trayTip", hotkeyName)
+hotkeyLabel := ""
+for name in hotkeyList
+    hotkeyLabel .= (hotkeyLabel = "" ? "" : " / ") . name
+A_IconTip := T("trayTip", hotkeyLabel)
 
 ; --- How often do we ask whether the caregiver has decided? -----------------
 ; POLL_SECONDS=0 (or a nonsense value) switches the warning half off entirely.
@@ -172,8 +192,12 @@ if (pollSeconds > 0) {
 
 DoCapture(ThisHotkey)
 {
-    global isSending
+    global isSending, lastSendDone
     if isSending              ; a send is already in progress - ignore
+        return
+    ; A button held down (or a bouncy macro pad) repeats the key. Anything
+    ; within two seconds of the last finished send is the same press.
+    if (A_TickCount - lastSendDone < 2000)
         return
     isSending := true
 
@@ -199,6 +223,7 @@ DoCapture(ThisHotkey)
         ToolTip(T("failed"))
 
     isSending := false
+    lastSendDone := A_TickCount
     SetTimer(HideTip, -3000)  ; clear the message after 3 seconds
 }
 

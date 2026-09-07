@@ -47,8 +47,10 @@ what still needs a human hand, and where the next hours of work should go.
   tests, clean `tsc` + build, lint 0 errors, no secrets anywhere in `origin/main` history.
   Then `LANGUAGE=en|af` in `config.ini`: every parent-facing string in
   `scamguard-key.ahk` moved into a two-language table (`STRINGS` + `T()`), offered by
-  `install.bat` and `make-client-bundle.ps1 -Language`. Written on Linux, so
-  `AutoHotkey.exe /validate` still has to be run on a Windows machine before shipping.
+  `install.bat` and `make-client-bundle.ps1 -Language`. Then the macro-keypad variant:
+  `HOTKEY=F13,PrintScreen` registers every listed key, a 2 s debounce absorbs a held
+  button, docs cover the hardware. Written on Linux, so `AutoHotkey.exe /validate`
+  still has to be run on a Windows machine before shipping.
 
 ## 2. SECURITY — actions only Dante can do (do these first)
 
@@ -267,8 +269,10 @@ warns the parent's PC (2026-08-10). What's left:
 
 1. **Capture-side polish.** ~~An Afrikaans option for the parent-facing text~~ (done
    2026-09-07 — validate the .ahk on Windows and have a native speaker read the eleven
-   strings once); a macro-keypad variant (any R150–R300 programmable pad mapped to the
-   `HOTKEY`); code-signing the PowerShell scripts so the antivirus exclusion becomes
+   strings once); ~~a macro-keypad variant~~ (done 2026-09-07: `HOTKEY` takes a
+   comma-separated list, presses are debounced for 2 s, and capture/SETUP.md step H
+   explains buying a R150–R300 pad and programming it to F13 — same .ahk validation
+   caveat); code-signing the PowerShell scripts so the antivirus exclusion becomes
    optional.
 2. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
    All are **devDependencies** affecting only the local dev server and test runner — none ship

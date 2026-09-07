@@ -62,6 +62,8 @@ if exist "%SRC%config.ini" (
   echo.
   echo         Which key should send a screenshot? Press Enter for PrintScreen.
   echo         No PrintScreen key? Try:  F12   ScrollLock   Pause
+  echo         A macro keypad / big red button? Program it to F13 and type F13
+  echo         ^(or  F13,PrintScreen  to keep the stickered key working too^).
   echo         Combos are written AutoHotkey-style - see config.example.ini.
   set "HKEY="
   set /p "HKEY=        Hotkey [PrintScreen]: "

@@ -28,6 +28,7 @@ param(
 
     # Which key sends a screenshot. Default PrintScreen; use e.g. F12,
     # ScrollLock, Pause or "^!s" (Ctrl+Alt+S) on keyboards without PrintScreen.
+    # A macro keypad programmed to F13: "F13", or "F13,PrintScreen" for both.
     [string]$Hotkey = "PrintScreen",
 
     # How often the PC asks whether you have flagged something (seconds).

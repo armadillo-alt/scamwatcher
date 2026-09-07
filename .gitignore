@@ -35,5 +35,8 @@ capture/config.ini
 # Local e2e mock-backend state
 .mock-data/
 
+# Scratch request body for the curl test in appsscript/SETUP.md step 8
+payload.json
+
 # Built distributable bundle (reproducible from capture/ — see capture/SETUP.md)
 ScamGuard-parent-PC.zip

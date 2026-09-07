@@ -3,7 +3,8 @@
 This folder is the whole "backend": one Apps Script web app running inside
 your own Google account. There is no server to rent, nothing to install on
 your machine, and **no credentials anywhere** — the deployed web app URL is
-the only secret-like value, and it lives only in the parent PC's `config.ini`.
+the only secret-like value, and it lives only in the parent PC's `config.ini`
+and, if you switch on the on-screen warning, in the dashboard's local Settings.
 
 Time needed: about 20 minutes, once.
 
@@ -26,7 +27,15 @@ Time needed: about 20 minutes, once.
                                                    ScamGuard dashboard
                                                    (reads the CSV, shows
                                                     the screenshots + verdicts)
+                                                             |
+   Parent's PC  <-- polls every 45 s --  Sheet tab  <-- "Mark as scam" posts
+   (red warning     (action=poll)        "Verdicts"     (action=verdict)
+    on screen)
 ```
+
+The same web app is also the way back (see "The way back: verdicts" below):
+the dashboard posts your scam verdicts to it, and the parent's PC polls it
+so a warning can appear on their screen.
 
 Each capture becomes one row in the sheet, in exactly this column order
 (the dashboard depends on it):
@@ -131,11 +140,17 @@ If OCR is never enabled, nothing breaks — captures still work, and the
 **Treat that URL like a password.** Anyone who has it can add rows to your
 sheet and send you email. So:
 
-- paste it **only** into the parent PC's `config.ini` — nowhere else;
+- paste it only into the parent PC's `config.ini` and, optionally, the
+  dashboard's Settings → *Warning their PC* (stored in that browser only);
 - never commit it to a repository, never post it in a chat or screenshot;
-- set `SECRET_KEY` in `Code.gs` to a long random string and put the same
-  string in `config.ini` — then a leaked URL alone is not enough (see
-  step 9 for rotating the URL if it ever does leak).
+- set a shared key: **Project Settings → Script properties → Add script
+  property**, name `SECRET_KEY`, value a long random string. Put the same
+  string in the parent PC's `config.ini` and in the dashboard's Settings →
+  *Warning their PC*. Then a leaked URL alone is not enough (see step 9 for
+  rotating the URL if it ever does leak). Do **not** type the key into
+  `Code.gs` — that file lives in a public repository, and a key on that line
+  got committed by accident twice during development. The `SECRET_KEY`
+  constant in the file stays empty; the Script Property wins when both exist.
 
 ## Step 7 — Publish the sheet as CSV for the dashboard
 
@@ -157,8 +172,9 @@ Notes:
 
 ## Step 8 — Test from Windows with curl
 
-Save this as `payload.json` (any folder). If you set `SECRET_KEY` in step 6,
-put the same value in `"key"`:
+Save this as `payload.json` in any folder **outside this repository** (it is
+gitignored here anyway). If you set `SECRET_KEY` in step 6, put the same
+value in `"key"`:
 
 ```json
 {
@@ -194,8 +210,9 @@ body with `key`, `device`, `capturedAt` (ISO date), `format` (`png` or
 
 ## Step 9 — Updating the code, and rotating the URL
 
-**After editing `Code.gs`** (for example to set `SECRET_KEY`): saving is not
-enough — the live URL keeps serving the old code until you redeploy.
+**After editing `Code.gs`**: saving is not enough — the live URL keeps
+serving the old code until you redeploy. (Changing the `SECRET_KEY` Script
+Property needs no redeploy.)
 
 1. **Deploy → Manage deployments**.
 2. Click the pencil (**Edit**) on the active deployment.
@@ -210,10 +227,39 @@ The URL stays the same, so the parent PC needs no change. Do **not** use
    (it stops serving immediately).
 2. **Deploy → New deployment** → Web app → same settings as step 6.
 3. Put the new `/exec` URL into the parent PC's `config.ini`.
-4. While you are at it, change `SECRET_KEY` and redeploy.
+4. While you are at it, change the `SECRET_KEY` Script Property and update
+   `config.ini` to match.
+5. If you set up the on-screen warning, paste the new URL and key into the
+   dashboard's Settings → *Warning their PC* as well.
 
-The dashboard is unaffected — it only knows the published-CSV link, never
-the web app URL.
+The dashboard's screenshot list is unaffected — it reads the published-CSV
+link, which does not change.
+
+---
+
+## The way back: verdicts
+
+Since 2026-08-10 `doPost` routes on an `action` field in the JSON body. A
+body without one is a screenshot capture, so nothing above changes.
+
+| `action` | Sent by | What happens |
+|---|---|---|
+| `verdict` | the dashboard, when you tap **Mark as scam** with the `/exec` URL saved in Settings → *Warning their PC* | Appends `id, screenshot_id, device, verdict, message, created_at` to a **Verdicts** tab (created on first use). `message` is the guidance sentence you saved for that screenshot. A *safe* verdict is never sent. |
+| `poll` | `capture/check-verdicts.ps1` on the parent's PC, every `POLL_SECONDS` | Answers in plain text: line 1 `OK` (or `ERR reason`), then one `verdict\|iso\|message` line per new verdict for that device, oldest first. |
+
+Both carry the same `key` check as captures. A PC that has never polled
+before only sees verdicts from the last 10 minutes (`POLL_DEFAULT_WINDOW_MS`),
+so a fresh install cannot replay a backlog of old warnings; after that the PC
+keeps its own watermark and asks only for what is newer. The dashboard posts
+with `Content-Type: text/plain` on purpose — Apps Script does not answer CORS
+preflight requests, and a plain-text body keeps the browser from sending one.
+
+Load: at the default 45 s a PC makes about 1 900 polls a day, each a short
+read of the Verdicts tab. Lower `POLL_SECONDS` only with reason — every poll
+spends a little of your account's free Apps Script allowance.
+
+To test the whole return path without Google, `node scripts/mock-backend.mjs`
+answers capture, verdict and poll on `http://localhost:8787/exec`.
 
 ---
 
@@ -221,7 +267,7 @@ the web app URL.
 
 | Constant | Default | Meaning |
 |---|---|---|
-| `SECRET_KEY` | `""` | If non-empty, requests must send the same value as `"key"`. Recommended. |
+| `SECRET_KEY` | `""` | Leave empty. Set the key as a **Script Property** instead (step 6); the property wins when both exist. |
 | `NOTIFY_EMAIL` | `""` | Notification recipient. Empty = the account that deployed the script. |
 | `DASHBOARD_URL` | `""` | If set, the email includes this dashboard link. |
 | `SHEET_NAME` | `"Screenshots"` | Tab that receives one row per capture. |
@@ -230,11 +276,16 @@ the web app URL.
 | `OCR_ENABLED` | `true` | Server-side OCR on/off. |
 | `OCR_LANGUAGE` | `"en"` | OCR language hint. |
 | `OCR_MAX_CHARS` | `6000` | Cap on stored OCR text length. |
+| `VERDICTS_SHEET_NAME` | `"Verdicts"` | Tab that receives the caregiver's scam verdicts. |
+| `POLL_DEFAULT_WINDOW_MS` | 10 minutes | How far back a PC with no watermark can see. |
+| `POLL_MAX_ROWS` | `20` | Most verdicts returned by one poll. |
+| `POLL_SCAN_ROWS` | `200` | How many recent Verdicts rows one poll scans. |
 
 Script Properties the script uses (Project Settings → Script properties):
 
 | Property | Who sets it | Meaning |
 |---|---|---|
+| `SECRET_KEY` | you (step 6) | The shared key every request must carry. Lives here, never in the code. |
 | `SCAMGUARD_FOLDER_ID` | the script | Cached Drive folder id. Safe to delete; it is recreated. |
 | `SPREADSHEET_ID` | you, only if standalone | Target spreadsheet id when the script is not bound to a sheet. |
 
@@ -245,7 +296,8 @@ Script Properties the script uses (Project Settings → Script properties):
 | No email arrives | It is in Spam, or the daily MailApp quota is used up (about 100 recipients/day on personal accounts), or `NOTIFY_EMAIL` has a typo | Check Spam; check **Executions** in the script editor for errors; wait a day if the quota is exhausted |
 | Images show as broken in the dashboard | The file-sharing step failed — some Google Workspace domains forbid "anyone with the link" sharing | Open the file in Drive → Share → General access: **Anyone with the link, Viewer**. If your domain forbids it, use a personal Google account for ScamGuard |
 | `ocr_text` is always empty | The advanced Drive service is not enabled, or `OCR_ENABLED` is `false` | Step 4: the **Services** list must show **Drive** (v2). Also genuine: screenshots with no readable text |
-| `{"ok":false,"error":"Wrong or missing key."}` | `SECRET_KEY` in Code.gs does not match the `key` the sender posts | Make both strings identical, then redeploy (step 9) |
+| `{"ok":false,"error":"Wrong or missing key."}` | The `SECRET_KEY` Script Property does not match the `key` the sender posts (`config.ini` on the PC, or Settings → *Warning their PC* in the dashboard) | Make the strings identical; no redeploy needed for a property change |
+| "Mark as scam" toast says the relay refused it, or no warning reaches the PC | Wrong key or URL in the dashboard's Settings, or the PC is not polling | Check the key as above; on the PC side see the troubleshooting table in `capture/SETUP.md` |
 | curl prints an HTML page saying "Moved Temporarily" | Missing `-L` flag | Add `-L` so curl follows the redirect |
 | Response is a Google sign-in page | The deployment's "Who has access" is not **Anyone**, or you used a `/dev` URL instead of `/exec` | Redeploy with access **Anyone**; use the `/exec` URL |
 | Code changes have no effect | Edited but never redeployed | Step 9: Manage deployments → Edit → New version |

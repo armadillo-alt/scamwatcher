@@ -1,7 +1,8 @@
 # HANDOFF — read this first
 
-*From: Claude Fable 5 (session of 2026-07-06, Dante's last Fable session)*
-*To: Claude Opus 4.8 — and to Dante, who was away while all of this happened.*
+*Written 2026-07-06 by the session that rebuilt the repo. Updated 2026-07-13 (pipeline),
+2026-08-10 (verdict return path + installers) and 2026-09-07 (housekeeping). §1b lists what
+each later session added.*
 
 This repo was rebuilt end-to-end in one autonomous session. This document is the contract
 between that session and whoever works here next: what exists, why it's shaped this way,
@@ -27,22 +28,41 @@ what still needs a human hand, and where the next hours of work should go.
 5. **Verified** the app end-to-end in a live browser (desktop + mobile), ran an
    adversarial multi-agent review, and fixed what it confirmed (§7).
 
+## 1b. What happened since
+
+- **2026-07-13 — the whole pipeline.** `capture/` (AutoHotkey hotkey + PowerShell
+  capture-and-send with offline queue), `appsscript/` (Drive + OCR + Sheet + email relay),
+  `scripts/mock-backend.mjs` (local stand-in), GitHub Pages deploy workflow, PWA manifest
+  and service worker, SETUP-GUIDE.md. Four pipeline-review fixes (reliable send, large
+  captures). Zero secrets in the repo throughout.
+- **2026-08-10 — installers and the way back.** `install.bat`/`uninstall.bat`,
+  `make-client-bundle.ps1` (pre-filled bundle that refuses to build inside the repo, after
+  an extracted bundle with a real `config.ini` was committed by accident and untracked in
+  e10b2d5), configurable `HOTKEY`, AutoHotkey v1 misdetection fixed, `SECRET_KEY` moved
+  to Apps Script Script Properties. Then the **verdict return path**: marking a scam in the
+  dashboard posts to Apps Script, the parent PC polls every `POLL_SECONDS` and shows a
+  full-screen red warning in the caregiver's own words (§4 item 6).
+- **2026-09-07 — housekeeping.** Docs brought in line with the above, stray root files
+  removed, security checklist updated. Verified on a fresh clone: 15/15 tests, clean
+  `tsc` + build, lint 0 errors, no secrets anywhere in `origin/main` history.
+
 ## 2. SECURITY — actions only Dante can do (do these first)
 
 The leaked credentials are **still compromised** even though the files are gone locally —
 they were public on GitHub for over a year. Scrubbing history does not un-leak them.
+The two Google-side boxes below can only be ticked by Dante — no session can verify them
+from the repo. If they are done, tick them here so the next reader stops worrying.
 
 - [ ] **Revoke the app's Drive access**: myaccount.google.com/permissions → remove the app
       tied to project `gen-lang-client-0854224633`. This kills the leaked refresh token.
 - [ ] **Delete/rotate the OAuth client + API key**: console.cloud.google.com → project
       `gen-lang-client-0854224633` → Credentials. Delete the OAuth client
       (`184080643974-….apps.googleusercontent.com`) and any API keys.
-- [ ] **Force-push the scrubbed history** (my push was blocked by permission policy —
-      rewriting a public repo's history needs your say-so). From this directory:
-      `git push --force origin main`
-      Note: force-pushing does NOT purge old commits from GitHub's caches/forks — if you
-      want them gone from GitHub's side too, contact GitHub Support to run garbage
-      collection. Rotation above is what actually matters.
+- [x] **Force-push the scrubbed history** — done. A fresh clone of `origin/main` on
+      2026-09-07 has no `credentials.json`/`token.json` in any commit and none of the leaked
+      prefixes (`GOCSPX-`, `ya29.`, `AIza`) in any blob. A force-push does not purge old
+      commits from GitHub's caches/forks — only GitHub Support can garbage-collect those.
+      Rotation above is what actually matters.
 - [ ] If that Google account reused its password anywhere, treat the Drive contents as
       having been readable by strangers since March 2025 and act accordingly.
 
@@ -70,24 +90,39 @@ motion budget. Don't invent outside it; amend it deliberately instead.
 
 ## 4. How the stack fits together (explicit walkthrough)
 
-Since the 2026-07-13 session the repo ships the **whole pipeline**, still with zero
-secrets in the repo (the one sensitive string — the Apps Script `/exec` URL — lives only
-in the parent PC's gitignored `capture/config.ini`). **SETUP-GUIDE.md is the map for
-going live**; deep dives in `capture/SETUP.md` and `appsscript/SETUP.md`.
+Since the 2026-07-13 session the repo ships the **whole pipeline**, and since 2026-08-10
+the loop closes back to the parent's screen — still with zero secrets in the repo. The one
+sensitive string, the Apps Script `/exec` URL, lives only in the parent PC's gitignored
+`capture/config.ini` and (optionally, for the return path) in the caregiver's browser
+localStorage. **SETUP-GUIDE.md is the map for going live**; deep dives in
+`capture/SETUP.md` and `appsscript/SETUP.md`.
 
 ```
-capture/scamguard-key.ahk        parent PC: PrintScreen hook (AutoHotkey v2)
-  └─ capture-and-send.ps1        screenshots all monitors, POSTs {device, capturedAt,
-                                 image b64} to the /exec URL; offline queue + retry in
-                                 %LOCALAPPDATA%\ScamGuard (watcher.ps1 = no-AHK variant)
-appsscript/Code.gs               runs as Dante's Google account: saves PNG to Drive,
-                                 OCRs server-side (Drive API v2), appends the sheet row
-                                 (id|screenshot_url|timestamp|parent_id|ocr_text),
-                                 emails Dante → Android pings
+capture/scamguard-key.ahk        parent PC (AutoHotkey v2): the hotkey (default PrintScreen,
+  │                              HOTKEY= in config.ini) plus a watcher for alert.txt
+  ├─ capture-and-send.ps1        screenshots all monitors, POSTs {device, capturedAt,
+  │                              image b64} to the /exec URL; offline queue + retry in
+  │                              %LOCALAPPDATA%\ScamGuard (watcher.ps1 = no-AHK variant)
+  └─ check-verdicts.ps1          every POLL_SECONDS (default 45): POSTs {action:"poll",
+                                 device, since}; a "scam" line → alert.txt → the .ahk
+                                 shows a full-screen red warning in the caregiver's words
+appsscript/Code.gs               runs as Dante's Google account; doPost routes on `action`:
+                                 (absent) capture: PNG → Drive, server-side OCR (Drive
+                                          API v2), row → "Screenshots" tab
+                                          (id|screenshot_url|timestamp|parent_id|ocr_text),
+                                          email → Android pings
+                                 verdict  from the dashboard's "Mark as scam" → row in the
+                                          append-only "Verdicts" tab
+                                 poll     plain-text `verdict|iso|message` lines for one
+                                          device; a first-ever poll sees only the last 10 min
+                                 Shared key: SECRET_KEY Script Property, never in source.
 Google Sheet → published CSV  →  the dashboard (installable PWA; GitHub Pages workflow
                                  in .github/workflows/deploy.yml)
-Local stand-in for the Google side: scripts/mock-backend.mjs (port 8787) — used to
-e2e-test capture → CSV → dashboard without touching Google.
+Dashboard "Mark as scam" ──────▶ POST action=verdict to the /exec URL saved in Settings
+Local stand-in for the Google side: scripts/mock-backend.mjs (port 8787) — capture,
+verdict and poll, so the whole loop can be e2e-tested without touching Google.
+Installers: capture/install.bat (+uninstall.bat, setup-autohotkey.ps1) and
+scripts/make-client-bundle.ps1, which writes a pre-filled bundle to the Desktop.
 ```
 
 The dashboard itself: Vite + React 18 + TS strict. **7 runtime deps** (react, react-dom,
@@ -120,10 +155,18 @@ Data flow, in order:
 5. **Orchestration** — `src/hooks/useScreenshots.ts` is the only stateful module: fetch →
    OCR queue → analyze → merge reviews → filters/metrics/actions. Pages and components
    are presentational.
+6. **Verdict return path** — `src/lib/verdicts.ts` `sendScamWarning()`: when a "scam"
+   verdict is recorded and Settings holds an `/exec` URL, it POSTs `{action:"verdict", id,
+   device, verdict, message}`, where `message` is the guidance already saved for that
+   screenshot (the detail panel says so next to the guidance box). "Safe" sends nothing —
+   a popup for good news would only teach the parent to dismiss popups. The request uses
+   `Content-Type: text/plain` so it stays a simple CORS request; Apps Script does not
+   answer preflights. A toast reports whether it got through. `endpointUrl`/`endpointKey`
+   live in `scamguard.settings.v1` with the other settings and never leave the browser.
 
 Routes: `/` landing (the story) · `/app` review dashboard · `/app/learn` scam guide
 (8 SA-grounded entries in `src/lib/learnContent.ts`, each with a quotable "say it like
-this" line) · `/app/settings` source/OCR/data controls · `*` 404.
+this" line) · `/app/settings` source/OCR/data controls + "Warning their PC" · `*` 404.
 
 Keyboard triage on `/app`: `J`/`K` move, `Enter` open, `S` safe, `X` scam, `Esc` close.
 After a verdict, selection (and the open panel) advance to the next item automatically.
@@ -214,32 +257,30 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
 
 ## 8. Roadmap (in the order I'd do it)
 
-1. ~~Capture side~~ — **built 2026-07-13** (capture/ + appsscript/, see §4). Remaining
-   polish there: Afrikaans tooltip option for the parent-side feedback; a tiny installer
-   script; a macro-keypad variant (any R150–R300 programmable pad mapped to PrintScreen).
-2. **Close the loop to the parent.** Today the "assist" channel is Dante phoning/WhatsApping
-   (one-tap from the detail panel). A next step could show the parent an on-screen answer:
-   the capture script polls the Apps Script for a verdict on its last capture and shows a
-   gentle popup ("Dante says: it's safe" / "Don't touch it — he's phoning you"). Needs a
-   doGet action + verdict POST from the dashboard (the dashboard would then hold the /exec
-   URL in its local Settings — still no secret in the repo).
-3. **A real backend, only when needed** (accounts, multiple caregivers, private image
-   storage). Supabase/Firebase tier is enough. Auth belongs there — never client-side.
-4. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
+Already done since this list was first written: the capture side and PWA (2026-07-13),
+the one-file installer and pre-filled bundle (2026-08-10), and the verdict return path that
+warns the parent's PC (2026-08-10). What's left:
+
+1. **Capture-side polish.** An Afrikaans option for the parent-facing text (tooltips and
+   the red warning — a large share of the target demographic); a macro-keypad variant (any
+   R150–R300 programmable pad mapped to the `HOTKEY`); code-signing the PowerShell scripts
+   so the antivirus exclusion becomes optional.
+2. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
    All are **devDependencies** affecting only the local dev server and test runner — none ship
    in the built static site, so production risk is nil. The fix is a major bump (vite 5→8,
    vitest 2→3) that needs a full re-verify pass; do it deliberately, not via `audit fix --force`.
    (The larger Dependabot count on GitHub is inflated by the old lockfile history and will
    settle after a rescan.)
 3. **Engine v3**: co-occurrence boosts (impersonation + urgency in proximity), Afrikaans
-   patterns (large share of the target demographic), allowlist of known-legit SA domains
-   to cut false positives on real bank pages. The negation guard (analyze.ts) is a first
-   step toward context-awareness — extend it rather than reverting to bare substring hits.
+   patterns, allowlist of known-legit SA domains to cut false positives on real bank pages.
+   The negation guard (analyze.ts) is a first step toward context-awareness — extend it
+   rather than reverting to bare substring hits.
 4. **Self-host the OCR WASM** so the app is fully offline/self-contained (currently
    Tesseract.js pulls its WASM from jsdelivr on first use — the one external code fetch).
-5. **Weekly digest** — "3 screenshots this week, 1 confirmed scam" as email/WhatsApp via
-   the backend; caregivers won't open a dashboard daily forever.
-6. **PWA** — manifest + service worker; caregivers live on phones.
+5. **A real backend, only when needed** (accounts, multiple caregivers, private image
+   storage). Supabase/Firebase tier is enough. Auth belongs there — never client-side.
+6. **Weekly digest** — "3 screenshots this week, 1 confirmed scam" as email/WhatsApp; needs
+   the backend above. Caregivers won't open a dashboard daily forever.
 
 ## 9. Gotchas for the next session
 
@@ -266,6 +307,25 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
   renamed `*.json.rejected` (dead-letter, kept for diagnosis) so it can't block the queue.
 - react-refresh lint warns on `Toast.tsx` (exports both `toast()` and `ToastHost`) —
   known, accepted; it's a dev-only fast-refresh nicety, not worth splitting the file.
+- **The /exec URL now has two homes outside the repo**: `capture/config.ini` on the parent
+  PC and the caregiver's browser localStorage (`scamguard.settings.v1`, via Settings →
+  Warning their PC). Neither belongs in git. A filled-in `config.ini` was once committed
+  inside an extracted bundle (untracked in e10b2d5) — that is why `make-client-bundle.ps1`
+  refuses to build inside the repo and `.gitignore` covers the bundle output. If you add a
+  new place the URL gets written, gitignore it in the same commit.
+- **SECRET_KEY belongs in Apps Script Script Properties**, not in `Code.gs`. The constant
+  in the file stays empty; the script prefers the property. Don't "simplify" this back to
+  a constant — a key typed into Code.gs got committed twice during development.
+- The dashboard's verdict POST uses `Content-Type: text/plain` on purpose. Switching it to
+  `application/json` triggers a CORS preflight that Apps Script never answers, and the
+  warning silently stops reaching the PC. The PC-side poll (PowerShell, no browser) sends
+  JSON and is unaffected.
+- The `Verdicts` tab is created on first use. A PC with no watermark only sees verdicts
+  from the last 10 minutes (`POLL_DEFAULT_WINDOW_MS`), so a reinstall cannot replay old
+  warnings. `POLL_SECONDS=0` in `config.ini` switches the return path off, and the .ahk
+  also stays quiet if `check-verdicts.ps1` is missing next to it.
+- Validate `scamguard-key.ahk` with `AutoHotkey.exe /validate` after every edit — a syntax
+  error there breaks the red key itself, not just the warning.
 
 ## 10. Where everything is
 
@@ -276,6 +336,9 @@ scratch at `tasks/wtphz9u0h.output` if you want to re-audit any verdict.
 | User-facing docs | `README.md` |
 | Going-live map (capture → backend → phone) | `SETUP-GUIDE.md` |
 | Parent-PC capture scripts | `capture/` (config.ini is gitignored — it holds the /exec URL) |
+| Return path, PC side | `capture/check-verdicts.ps1` + the alert watcher in `capture/scamguard-key.ahk` |
+| Return path, dashboard side | `src/lib/verdicts.ts` + Settings → "Warning their PC" |
+| Installers / bundle | `capture/install.bat`, `capture/uninstall.bat`, `capture/setup-autohotkey.ps1`, `scripts/make-client-bundle.ps1` |
 | Backend (Dante's Google account) | `appsscript/` |
 | Local pipeline stand-in | `scripts/mock-backend.mjs` |
 | PWA bits | `public/manifest.webmanifest`, `public/sw.js`, `scripts/make-icons.mjs` |

@@ -25,7 +25,11 @@ TEST IT before you leave:
     - a small green  H  icon appears near the clock (that's the app running),
     - press the red key,
     - your phone gets the email and the screenshot shows in the ScamGuard app
-      (the app can lag a few minutes; the email is instant).
+      (the app can lag a few minutes; the email is instant),
+    - in the app, save a sentence of guidance and tap "Mark as scam": within
+      about a minute a big red warning with your words appears on this PC
+      (needs the /exec URL saved under Settings -> Warning their PC on your
+      phone). Press Escape to close it.
 
 Then tell your parent, once:
     "If anything on the computer ever worries you, just press the red key -

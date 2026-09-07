@@ -4,7 +4,9 @@ This folder is the capture side of ScamGuard: it turns one key on the
 parent's Windows 10/11 PC into the "show me" key. One press captures the
 whole screen and sends it to your Apps Script inbox, which files it in
 Drive, adds a row to the sheet, and emails your phone. The parent sees a
-gentle confirmation and nothing else.
+gentle confirmation and nothing else - until you mark that screenshot as a
+scam in the app, when a large red warning appears on their screen in your
+own words (step D2).
 
 Before you start you need the Apps Script deployment URL (the link ending
 in `/exec`) - you copied it in `appsscript/SETUP.md`, **step 6**. Budget
@@ -13,10 +15,14 @@ about 15 minutes at the parent's PC (or over remote support).
 | File | Purpose |
 |---|---|
 | `install.bat` | **the easy path** — does steps C–E for you (see below) |
-| `scamguard-key.ahk` | listens for the red key, shows the gentle messages |
+| `uninstall.bat` | clean removal (after testing on your own PC) |
+| `scamguard-key.ahk` | listens for the red key, shows the gentle messages and the red warning |
 | `capture-and-send.ps1` | captures the screen, sends it, queues it when offline |
+| `check-verdicts.ps1` | asks your Apps Script whether you marked a scam; launched by the `.ahk` every `POLL_SECONDS` |
+| `setup-autohotkey.ps1` | used by `install.bat` to find/install AutoHotkey v2 and register the startup entry |
 | `watcher.ps1` | alternative that needs no AutoHotkey (step F) |
-| `config.example.ini` | template for `config.ini` |
+| `config.example.ini` | template for `config.ini` — every setting is explained in it |
+| `READ-ME-FIRST.txt` | the one-page version of this file, for the USB stick |
 
 ## Fast path: one-file install
 
@@ -27,8 +33,13 @@ It asks for administrator rights, then creates `C:\ScamGuard`, writes `config.in
 to start at logon, installs AutoHotkey if needed, and launches it. Then do step A
 (the red sticker + the sentence to your parent) and test.
 
-To rebuild the ZIP from this folder: in PowerShell, `Compress-Archive -Path
-capture\install.bat,capture\READ-ME-FIRST.txt,capture\scamguard-key.ahk,capture\capture-and-send.ps1,capture\watcher.ps1,capture\config.example.ini,capture\SETUP.md -DestinationPath ScamGuard-parent-PC.zip -Force`.
+Better still, build the bundle at home with `config.ini` already filled in, so
+nothing has to be typed at the parent's PC: from the repo root,
+`.\scripts\make-client-bundle.ps1 -Endpoint "<your /exec URL>" -DeviceName "Mom's PC" -SecretKey "<your key>"`
+(see SETUP-GUIDE.md). It writes the folder to your Desktop and deliberately
+refuses to run inside the repo, so a filled-in `config.ini` can never end up
+in git. To rebuild a plain ZIP without the config instead: in PowerShell,
+`Compress-Archive -Path capture\install.bat,capture\uninstall.bat,capture\setup-autohotkey.ps1,capture\READ-ME-FIRST.txt,capture\scamguard-key.ahk,capture\capture-and-send.ps1,capture\check-verdicts.ps1,capture\watcher.ps1,capture\config.example.ini,capture\SETUP.md -DestinationPath ScamGuard-parent-PC.zip -Force`.
 
 The steps below are the same thing done by hand, if you'd rather.
 
@@ -57,13 +68,20 @@ AutoHotkey is the small free tool that lets us remap the key.
 ## C) Copy the files and create config.ini
 
 1. Create the folder `C:\ScamGuard`.
-2. Copy `scamguard-key.ahk` and `capture-and-send.ps1` into it.
+2. Copy `scamguard-key.ahk`, `capture-and-send.ps1` and `check-verdicts.ps1`
+   into it. (Without `check-verdicts.ps1` the red key still works; only the
+   on-screen warning is missing.)
 3. Copy `config.example.ini` to `C:\ScamGuard\config.ini`, open it in
    Notepad and:
    - paste your `/exec` URL as `ENDPOINT_URL` (from `appsscript/SETUP.md`,
      step 6),
    - set `DEVICE_NAME` to something you will recognise ("Mom's PC"),
-   - set `SECRET_KEY` if you configured one in `Code.gs` (recommended).
+   - set `SECRET_KEY` to the value you put in Apps Script's Script
+     Properties (recommended),
+   - optionally change `HOTKEY` (laptops often lack PrintScreen - `F12`,
+     `Pause` or `^!s` for Ctrl+Alt+S all work; put the sticker on that key),
+   - optionally change `POLL_SECONDS` (how often the PC checks for your
+     verdict; default 45, `0` switches the on-screen warning off).
 4. `config.ini` stays on that PC only. The URL in it is a capability:
    anyone who has it can post into your sheet. It is gitignored in this
    repo on purpose - never commit or share it.
@@ -97,6 +115,24 @@ and know what they do - you can read every line of `capture-and-send.ps1`.
    few seconds later "Sent. Help is on the way."
 3. Check your side: a new row in the **ScamGuard Data** sheet, the image in
    Drive, and the notification email on your phone.
+
+## D2) Test the warning on their screen
+
+This needs the `/exec` URL and shared key saved on your phone: ScamGuard
+app -> Settings -> **Warning their PC** (SETUP-GUIDE.md, step 3).
+
+1. Open the test screenshot in the app, type a sentence of guidance
+   ("Don't touch it - I'm phoning you") and save it.
+2. Tap **Mark as scam**. The toast should say "Warning sent to Mom's PC".
+3. Within about a minute (`POLL_SECONDS`) the parent's screen shows a large
+   red window with your sentence and a beep. **Escape** closes it. If you
+   saved no guidance, a firm standard warning is shown instead.
+4. Mark something **safe**: nothing appears on their screen. That is on
+   purpose - a reassuring popup every time would teach them to click
+   warnings away without reading, which is exactly what a scammer needs.
+
+Only the bare key press and the poll ever talk to Google. The poll sends the
+device name and a timestamp, never anything from the screen.
 
 ## E) Start it automatically at login
 
@@ -146,10 +182,14 @@ queueing works exactly the same.
 | Worried that ExecutionPolicy blocks the script | It does not - both launch commands pass `-ExecutionPolicy Bypass`, which applies only to that one hidden process. Nothing to change on the PC. |
 | The parent has two monitors | Both arrive as one wide image. That is expected - the capture spans the whole desktop so nothing is missed. |
 | Row appears in the sheet but no email | The capture side is fine; check the Apps Script side (`appsscript/SETUP.md`, troubleshooting table). |
-| You want to see what happened lately | `%LOCALAPPDATA%\ScamGuard\activity.log` has one line per capture: SENT, QUEUED or ERROR, with sizes. |
+| You want to see what happened lately | `%LOCALAPPDATA%\ScamGuard\activity.log` has one line per capture: SENT, QUEUED or ERROR, with sizes, plus one line per warning received. |
+| You marked a scam but no warning appeared | Check, in order: the app's toast said "Warning sent" (if it said the relay refused it, the key in Settings does not match Script Properties); `POLL_SECONDS` in `config.ini` is not `0`; `check-verdicts.ps1` is in `C:\ScamGuard` next to the `.ahk`; the PC had been running for at least one poll. A PC polling for the very first time only sees verdicts from the last 10 minutes, so an old test verdict will not replay - mark a fresh one. `error.log` records poll problems, throttled so it does not fill up. |
+| The warning shows the standard text, not your words | The guidance was not saved before you tapped "Mark as scam". Save the sentence first; the panel says so under the guidance box. |
 
 **Privacy, so you can say it with a straight face:** nothing on the PC
 records in the background. The screen is captured at exactly one moment -
 when the red key is pressed (or, in watcher mode, when Windows itself saves
-a screenshot). There is no schedule, no periodic upload, no keylogging;
-between presses the scripts are idle.
+a screenshot). There is no keylogging and no periodic upload of anything
+from the screen. The only scheduled activity is the verdict poll every
+`POLL_SECONDS`, which sends the device name and a timestamp to your own
+Apps Script and nothing else - and `POLL_SECONDS=0` switches even that off.

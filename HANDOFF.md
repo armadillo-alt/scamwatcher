@@ -50,7 +50,11 @@ what still needs a human hand, and where the next hours of work should go.
   `install.bat` and `make-client-bundle.ps1 -Language`. Then the macro-keypad variant:
   `HOTKEY=F13,PrintScreen` registers every listed key, a 2 s debounce absorbs a held
   button, docs cover the hardware. Written on Linux, so `AutoHotkey.exe /validate`
-  still has to be run on a Windows machine before shipping.
+  still has to be run on a Windows machine before shipping. Then the **dependency
+  bumps**: Vite 5→8, Vitest 2→5, ESLint 9→10, react-hooks 5→7 (its React Compiler rules
+  flagged four spots, all fixed in code — see gotchas), React Router 6→7 (only the removed
+  `future` prop changed), deploy workflow on Node 22. `npm audit`: 11 findings → 0.
+  Verified by tests, build, lint and a headless-Chromium run of the whole loop.
 
 ## 2. SECURITY — actions only Dante can do (do these first)
 
@@ -274,12 +278,12 @@ warns the parent's PC (2026-08-10). What's left:
    explains buying a R150–R300 pad and programming it to F13 — same .ahk validation
    caveat); code-signing the PowerShell scripts so the antivirus exclusion becomes
    optional.
-2. **Dev-dependency advisories (low priority).** GitHub Dependabot flags vite/vitest/esbuild.
-   All are **devDependencies** affecting only the local dev server and test runner — none ship
-   in the built static site, so production risk is nil. The fix is a major bump (vite 5→8,
-   vitest 2→3) that needs a full re-verify pass; do it deliberately, not via `audit fix --force`.
-   (The larger Dependabot count on GitHub is inflated by the old lockfile history and will
-   settle after a rescan.)
+2. ~~**Dev-dependency advisories.**~~ Done 2026-09-07: Vite 8, Vitest 5, ESLint 10,
+   react-hooks 7, React Router 7, Node 22 in the deploy workflow; `npm audit` is clean.
+   Still on their current majors by choice: React 18 (19 is a migration), Tesseract.js 5
+   (7 changes the worker API — do it together with roadmap item 4), TypeScript 5 (7 is the
+   native rewrite and typescript-eslint's peer range stops before it). Bump those
+   deliberately, each with the same verify pass (tests, build, lint, the browser smoke below).
 3. **Engine v3**: co-occurrence boosts (impersonation + urgency in proximity), Afrikaans
    patterns, allowlist of known-legit SA domains to cut false positives on real bank pages.
    The negation guard (analyze.ts) is a first step toward context-awareness — extend it
@@ -333,6 +337,20 @@ warns the parent's PC (2026-08-10). What's left:
   from the last 10 minutes (`POLL_DEFAULT_WINDOW_MS`), so a reinstall cannot replay old
   warnings. `POLL_SECONDS=0` in `config.ini` switches the return path off, and the .ahk
   also stays quiet if `check-verdicts.ps1` is missing next to it.
+- **react-hooks 7 runs the React Compiler rules** and they are errors, not warnings: no
+  `setState` synchronously inside an effect body (derive the value, or set it inside the
+  async callback), no `Date.now()`/`Math.random()` during render (capture it in a callback
+  and keep it in state — see `loadedAt` in `useScreenshots`), and `useMemo` wants an inline
+  arrow. `useScreenshots.loading` and `Dashboard.selectedId` are derived values now; don't
+  reintroduce the sync effects.
+- **Browser smoke recipe** (no committed driver): `node scripts/mock-backend.mjs` +
+  `npm run dev`, then a throwaway Playwright script against the preinstalled Chromium
+  (`npm i --no-save playwright-core`; `executablePath: /opt/pw-browsers/chromium` in the
+  remote container). Post a capture to `/exec`, set `scamguard.settings.v1` in localStorage
+  to point at `http://localhost:8787/sheet.csv` and `/exec`, open `/app`, mark as scam, then
+  POST `{action:"poll", device}` to `/exec` and expect a `scam|iso|message` line. Scope the
+  "Mark as scam" click to the panel (`button.btn-danger:not(.btn-sm)`) — the card behind
+  the overlay has a matching button too.
 - Validate `scamguard-key.ahk` with `AutoHotkey.exe /validate` after every edit — a syntax
   error there breaks the red key itself, not just the warning. **The 2026-09-07 language
   edit has not yet been validated** (no Windows in that session); do it before shipping.

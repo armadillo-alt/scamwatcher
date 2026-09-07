@@ -54,7 +54,10 @@ what still needs a human hand, and where the next hours of work should go.
   bumps**: Vite 5→8, Vitest 2→5, ESLint 9→10, react-hooks 5→7 (its React Compiler rules
   flagged four spots, all fixed in code — see gotchas), React Router 6→7 (only the removed
   `future` prop changed), deploy workflow on Node 22. `npm audit`: 11 findings → 0.
-  Verified by tests, build, lint and a headless-Chromium run of the whole loop.
+  Verified by tests, build, lint and a headless-Chromium run of the whole loop. Then
+  **Engine v3** (§4 item 3): Afrikaans phrasings in every pattern, five explained
+  co-occurrence combinations, lookalike-domain detection with a genuine-address allowlist.
+  10 new contract tests (25 total); every demo row keeps its level, scam rows score higher.
 
 ## 2. SECURITY — actions only Dante can do (do these first)
 
@@ -152,12 +155,26 @@ Data flow, in order:
    only if enabled in Settings. Tesseract.js is dynamically imported (never in the initial
    bundle), one shared worker, sequential queue, results cached in localStorage forever.
 3. **Analysis** — `src/lib/engine/analyze.ts` `analyzeText(text)`: pure function. Walks
-   `patterns.ts` (9 categories, ~34 weighted `PatternDef`s, each with a caregiver-facing
-   `explanation`), sums weights (each def counts once), caps at 100, maps ≥45→high /
-   ≥20→medium / else low, and composes a one-sentence summary from the top two matched
-   categories. **Every match is explainable** — that's the product's educational core.
-   `analyze.test.ts` is the calibration contract; the false-positive guard (a legitimate
-   Capitec login page must stay *low*) is the most important test in the repo.
+   `patterns.ts` (11 categories, ~40 weighted `PatternDef`s, each bilingual and with a
+   caregiver-facing `explanation`), sums weights (each def counts once), caps at 100, maps
+   ≥45→high / ≥20→medium / else low, and composes a one-sentence summary from the top two
+   matched categories. **Every match is explainable** — that's the product's educational
+   core. Since v3 (2026-09-07) three more things happen, all data-driven from `patterns.ts`:
+   - *Web addresses.* Domain-shaped tokens are checked against `LEGIT_DOMAINS` (suffix
+     match, so `gov.za` covers SARS/SASSA). One that is not genuine but contains a
+     `BRAND_TOKENS` name ("fnb-secure-login.co.za") is a 16-point impersonation match. A
+     genuine address, with no lookalike present, halves the `kind: "brand"` def (the bare
+     bank-name mention) and appends a note to its explanation — nothing else is discounted.
+   - *Combinations.* `COMBINATIONS` pairs two categories with a character window; when the
+     closest matches of the pair sit within it, an extra explained match is added under
+     category `combination` ("Two signals together"). Discounted brand mentions never take
+     part. Combinations are excluded from the summary sentence.
+   - *Afrikaans.* Phrases live inside the same defs as their English counterparts, mostly
+     without the pronoun so one substring covers "u" and "jou". The negation guard knows
+     "nooit", "sal nie", "sal nooit", "geen" — deliberately not the bare particle "nie".
+   `analyze.test.ts` is the calibration contract; the false-positive guards (a legitimate
+   Capitec login page, bank safety notices in both languages, a genuine statement page with
+   its real address, news, a church newsletter — all *low*) are the most important tests.
 4. **Reviews** — `src/lib/store.ts`: verdict/note/guidance per screenshot id in
    localStorage (`scamguard.reviews.v1`), merged over source rows at render time. The
    sheet stays read-only; reviews survive refresh (the old app lost them); Settings offers
@@ -284,10 +301,12 @@ warns the parent's PC (2026-08-10). What's left:
    (7 changes the worker API — do it together with roadmap item 4), TypeScript 5 (7 is the
    native rewrite and typescript-eslint's peer range stops before it). Bump those
    deliberately, each with the same verify pass (tests, build, lint, the browser smoke below).
-3. **Engine v3**: co-occurrence boosts (impersonation + urgency in proximity), Afrikaans
-   patterns, allowlist of known-legit SA domains to cut false positives on real bank pages.
-   The negation guard (analyze.ts) is a first step toward context-awareness — extend it
-   rather than reverting to bare substring hits.
+3. ~~**Engine v3**~~ — done 2026-09-07 (§4 item 3). Natural next steps, in order: have a
+   native Afrikaans speaker read the phrase lists once (they were written by a model, not
+   a speaker); grow `LEGIT_DOMAINS`/`BRAND_TOKENS` from real captures; consider a small
+   penalty for *many* distinct lookalike domains; and word-boundary matching for the few
+   bare tokens ("dringend", "nuwe nommer") if OCR noise ever makes them misfire. Keep
+   extending the negation guard rather than reverting to bare substring hits.
 4. **Self-host the OCR WASM** so the app is fully offline/self-contained (currently
    Tesseract.js pulls its WASM from jsdelivr on first use — the one external code fetch).
 5. **A real backend, only when needed** (accounts, multiple caregivers, private image
@@ -337,6 +356,14 @@ warns the parent's PC (2026-08-10). What's left:
   from the last 10 minutes (`POLL_DEFAULT_WINDOW_MS`), so a reinstall cannot replay old
   warnings. `POLL_SECONDS=0` in `config.ini` switches the return path off, and the .ahk
   also stays quiet if `check-verdicts.ps1` is missing next to it.
+- **Engine calibration lives in three places now**: def weights, `COMBINATIONS` weights and
+  `LOOKALIKE_WEIGHT`, all in `patterns.ts`. A combination can lift a text from medium to
+  high on its own, so when you add one, rerun the demo-row snapshot (a throwaway Vitest
+  file that prints `analyzeText(row.ocrText).level` for `DEMO_ROWS`) and make sure no
+  legitimate demo row moves. Combinations require *affirmative* matches, so the negation
+  guard protects them too.
+- **Adding a pattern means adding it in both languages** in the same def. Don't create a
+  parallel Afrikaans def — the two would double-count one manipulation.
 - **react-hooks 7 runs the React Compiler rules** and they are errors, not warnings: no
   `setState` synchronously inside an effect body (derive the value, or set it inside the
   async callback), no `Date.now()`/`Math.random()` during render (capture it in a callback

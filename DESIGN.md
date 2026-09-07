@@ -143,8 +143,16 @@ Key decisions and why:
   `engine/analyze.ts` is a pure function returning score, level, and *named reasons with
   plain-language explanations* — the caregiver learns while reviewing. It is **negation-aware**:
   a bank's own "we will never ask you to confirm your PIN" notice is suppressed, so genuine
-  fraud-awareness text stays quiet. Unit-tested with Vitest; the false-positive guard
-  (a legitimate bank login stays *low*) is the load-bearing test.
+  fraud-awareness text stays quiet. Since v3 it is also **bilingual** (every pattern carries
+  Afrikaans phrasings; the same trick in either language counts once), **context-aware**
+  (five explained *combinations* — a bank name next to a deadline, a deadline next to a
+  request for details, a prize next to a fee… — add points only when the two signals sit
+  within a couple of sentences of each other; they show as "Two signals together" and never
+  enter the summary) and **address-aware** (a web address that borrows a bank's or official
+  name but is not the real one scores as impersonation; a genuine address merely halves the
+  "named bank" signal and keeps it out of combinations). Unit-tested with Vitest; the
+  false-positive guards (a legitimate bank login, a bank's own safety notice in either
+  language, a news article, a church newsletter — all stay *low*) are the load-bearing tests.
 - **Reviews persist.** The old app lost every review on refresh (state-only). Reviews, notes
   and guidance live in localStorage keyed by screenshot id, merged over source rows; the
   Sheet stays read-only. Export/import JSON for portability.

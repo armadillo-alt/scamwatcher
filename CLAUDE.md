@@ -30,9 +30,12 @@ pressing a physical red key. Frontend-only Vite + React 18 + TypeScript (strict)
 4. **The engine stays pure and explainable.** `analyzeText()` must stay a synchronous pure
    function whose matches each carry a caregiver-readable explanation. Tune weights in
    `patterns.ts`; keep the false-positive guard tests passing (a legitimate bank login page,
-   a bank's own “we never ask for your PIN” notice, and a news/health article must all stay
-   below “medium”). The matcher is negation-aware — don't revert it to bare `includes()`
-   without re-checking `analyze.test.ts`.
+   a bank's own “we never ask for your PIN” notice in English or Afrikaans, a genuine bank
+   page that shows its real web address, and a news/health article or church newsletter
+   must all stay below “medium”). The matcher is negation-aware — don't revert it to bare
+   `includes()` without re-checking `analyze.test.ts`. Every pattern is bilingual (English +
+   Afrikaans in the same def, so a trick counts once); add both when adding a pattern.
+   Combinations, the domain allowlist and brand tokens are data in `patterns.ts` too.
 5. **Reviews live in localStorage** (`scamguard.*.v1` keys). Bump the key suffix and write a
    migration if the shape changes.
 

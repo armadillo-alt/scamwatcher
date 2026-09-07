@@ -6,9 +6,10 @@ lands here — with a plain-language answer to *“is this a scam?”*
 > One button. One scan. One less thing to worry about.
 
 This is the caregiver-facing web app: a calm triage dashboard for reviewing those
-screenshots, an explainable scam-risk analysis that runs entirely in the browser, and a
-plain-language guide to the scams that actually circulate in South Africa (SARS refunds,
-SASSA grants, bank impersonation, “Hi Mom” WhatsApp messages…).
+screenshots, an explainable scam-risk analysis that runs entirely in the browser (in
+English and Afrikaans, and alert to lookalike web addresses), and a plain-language guide
+to the scams that actually circulate in South Africa (SARS refunds, SASSA grants, bank
+impersonation, “Hi Mom” WhatsApp messages…).
 
 **Design and architecture are documented in [DESIGN.md](DESIGN.md).
 If you are picking this project up, start with [HANDOFF.md](HANDOFF.md).

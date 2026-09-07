@@ -121,6 +121,101 @@ describe("analyzeText", () => {
     expect(a.level).toBe("low");
   });
 
+  /* ---------- v3: signals that reinforce each other ---------- */
+
+  it("scores a bank name next to a deadline higher than the same two signals far apart", () => {
+    const filler = " The weather in Bloemfontein was mild for the time of year, with light cloud.".repeat(5);
+    const close = analyzeText("Your FNB account will be closed within 24 hours.");
+    const apart = analyzeText("Your FNB account has a new statement." + filler + " Reply within 24 hours.");
+    expect(close.score).toBeGreaterThan(apart.score);
+    const combo = close.matches.find((m) => m.categoryId === "combination");
+    expect(combo).toBeDefined();
+    expect(combo!.explanation.length).toBeGreaterThan(20);
+    expect(apart.matches.find((m) => m.categoryId === "combination")).toBeUndefined();
+  });
+
+  it("keeps combinations out of the one-sentence summary", () => {
+    const a = analyzeText("Your FNB account will be closed within 24 hours. Verify your banking details now.");
+    expect(a.summary).not.toMatch(/together/i);
+    expect(a.level).toBe("high");
+  });
+
+  /* ---------- v3: web addresses ---------- */
+
+  it("flags a lookalike address that borrows a bank's name", () => {
+    const a = analyzeText("Log in at https://fnb-secure-login.co.za to confirm your card number.");
+    const look = a.matches.find((m) => m.phrase === "fnb-secure-login.co.za");
+    expect(look).toBeDefined();
+    expect(look!.categoryId).toBe("impersonation");
+    expect(a.level).not.toBe("low");
+  });
+
+  it("does not flag a genuine bank address, and lets it discount the bank's name", () => {
+    const text =
+      "Your FNB account statement is ready at www.fnb.co.za. Noticed unusual activity? " +
+      "Call us on the number on the back of your card.";
+    const a = analyzeText(text);
+    expect(a.matches.find((m) => m.phrase.includes("fnb.co.za"))).toBeUndefined();
+    expect(a.level).toBe("low");
+    const brand = a.matches.find((m) => m.phrase === "fnb account");
+    expect(brand).toBeDefined();
+    expect(brand!.weight).toBeLessThan(12);
+  });
+
+  it("still scores a phish high when it shows a real address next to a fake request", () => {
+    const a = analyzeText(
+      "From: FNB <noreply@fnb.co.za>. Unusual activity on your FNB account. " +
+        "Verify your banking details within 24 hours or your account will be suspended.",
+    );
+    expect(a.level).toBe("high");
+  });
+
+  it("does not mistake prices or abbreviations for web addresses", () => {
+    const a = analyzeText("Special: R28.50 per kg, e.g. lamb chops. See St.Andrews Parish notice.");
+    expect(a.matches).toHaveLength(0);
+  });
+
+  /* ---------- v3: Afrikaans ---------- */
+
+  it("flags an Afrikaans bank phishing SMS as high risk", () => {
+    const a = analyzeText(
+      "DRINGEND: U Capitec rekening is opgeskort. Verifieer u bankbesonderhede binne 24 uur " +
+        "anders sal u rekening permanent gesluit word.",
+    );
+    expect(a.level).toBe("high");
+    expect(a.matches.length).toBeGreaterThan(2);
+  });
+
+  it("flags an Afrikaans 'Hallo Ma' family scam", () => {
+    const a = analyzeText(
+      "Hallo Ma, dit is my nuwe nommer, my foon is stukkend. Ek het dringend geld nodig - " +
+        "kan Ma dit vir my betaal na hierdie rekening?",
+    );
+    expect(a.level).toBe("high");
+    expect(a.matches.some((m) => m.categoryId === "family-impersonation")).toBe(true);
+  });
+
+  it("does not flag a bank's Afrikaans 'ons sal nooit vra' notice", () => {
+    const a = analyzeText(
+      "Veiligheidskennisgewing. Capitec sal u nooit vra om u bankbesonderhede te bevestig, " +
+        "u PIN te stuur of die OTP in te voer nie. Ons sal nooit sê dat u rekening opgeskort is nie.",
+    );
+    expect(a.level).toBe("low");
+  });
+
+  it("keeps an Afrikaans news article and a church newsletter at low risk", () => {
+    const news = analyzeText(
+      "Beurtkrag skuif Donderdag na fase 4. Eskom het gesê instandhouding by twee kragstasies " +
+        "sal tot die naweek voortduur.",
+    );
+    const parish = analyzeText(
+      "Gemeentebrief. Sondagdienste om 08:30 en 10:00. Die basaar het R1,840 vir die sopkombuis " +
+        "ingesamel - dankie aan elke helper. Resep van die maand: Ouma se melktert.",
+    );
+    expect(news.level).toBe("low");
+    expect(parish.level).toBe("low");
+  });
+
   it("every match carries a plain-language explanation", () => {
     const a = analyzeText("Verify your banking details immediately or your account will be closed.");
     expect(a.matches.length).toBeGreaterThan(0);
